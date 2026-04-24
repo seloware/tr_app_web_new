@@ -51,5 +51,6 @@ export const STATUS_LABELS: Record<string, string> = {
 
 export const CREDIT_COSTS = { TRANSLATION_PER_PAGE: 1, CHAT_PER_QUESTION: 0.5 };
 export const APP_NAME = 'TransLingua';
-export const APP_TAGLINE = 'AI-Powered Document Translation';
+export const APP_TAGLINE = 'Gelişmiş AI ile Belge Çevirisi';
 export const APP_DESCRIPTION = 'Belgelerinizi yapay zeka ile saniyeler içinde Türkçe\'ye çevirin.';
+

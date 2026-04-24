@@ -1,29 +1,53 @@
+/* ========================================================================
+   TransLingua — Dashboard Page Styles
+   Ana panel düzeni: karşılama, istatistikler, hızlı işlemler, son belgeler
+   ======================================================================== */
+
 .dashboard { padding: calc(var(--navbar-height) + var(--space-8)) var(--space-6) var(--space-12); max-width: var(--max-width); margin: 0 auto; }
-.welcomeCard { background: var(--color-accent); border-radius: var(--radius-2xl); padding: var(--space-10) var(--space-10); color: white; margin-bottom: var(--space-8); position: relative; overflow: hidden; }
-.welcomeOrb { position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.08); top: -80px; right: -60px; }
+
+/* Karşılama kartı */
+.welcomeCard { background: var(--color-accent); border-radius: var(--radius-2xl); padding: var(--space-10); color: white; margin-bottom: var(--space-8); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
+.welcomeOrb { position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.08); top: -80px; right: -60px; pointer-events: none; }
 .welcomeContent { position: relative; z-index: 1; }
 .welcomeGreeting { font-size: var(--font-size-xl); font-weight: var(--font-weight-normal); opacity: 0.9; margin-bottom: var(--space-2); }
 .welcomeName { font-size: var(--font-size-3xl); font-weight: var(--font-weight-black); letter-spacing: var(--letter-spacing-tight); margin-bottom: var(--space-2); }
 .welcomePlan { display: inline-flex; padding: var(--space-1) var(--space-3); background: rgba(255,255,255,0.2); border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: var(--letter-spacing-wide); }
+
+/* Dashboard "Yeni Çeviri" butonu */
+.welcomeCta { display: inline-flex; align-items: center; gap: var(--space-2); position: relative; z-index: 1; padding: var(--space-3) var(--space-6); background: white; color: var(--color-accent); border-radius: var(--radius-full); font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); text-decoration: none; white-space: nowrap; transition: all var(--duration-fast) var(--ease-out); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+.welcomeCta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); color: var(--color-accent); }
+
+/* İstatistik kartları */
 .statsGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); margin-bottom: var(--space-8); }
 .statCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-6); transition: all var(--duration-normal) var(--ease-out); }
 .statCard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .statIcon { width: 40px; height: 40px; border-radius: var(--radius-md); display: grid; place-items: center; margin-bottom: var(--space-4); }
 .statValue { font-size: var(--font-size-2xl); font-weight: var(--font-weight-black); letter-spacing: var(--letter-spacing-tight); margin-bottom: var(--space-1); }
 .statLabel { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+/* Bölüm başlığı */
 .sectionTitle { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); margin-bottom: var(--space-5); display: flex; align-items: center; gap: var(--space-3); }
+
+/* Hızlı işlem kartları */
 .quickActions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); margin-bottom: var(--space-8); }
 .actionCard { display: flex; align-items: center; gap: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-5); text-decoration: none; color: var(--color-text-primary); transition: all var(--duration-normal) var(--ease-out); }
 .actionCard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--color-accent); color: var(--color-text-primary); }
 .actionIcon { width: 44px; height: 44px; border-radius: var(--radius-lg); display: grid; place-items: center; flex-shrink: 0; }
 .actionTitle { font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); }
 .actionDesc { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-1); }
+.actionArrow { margin-left: auto; color: var(--color-text-tertiary); transition: transform var(--duration-fast) var(--ease-out); }
+.actionCard:hover .actionArrow { transform: translateX(3px); color: var(--color-accent); }
+
+/* Aylık kredi kullanım çubuğu */
 .creditBar { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-6); margin-bottom: var(--space-8); }
 .creditHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
 .creditLabel { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
 .creditValue { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); }
 .creditTrack { height: 8px; background: var(--color-bg-alt); border-radius: var(--radius-full); overflow: hidden; }
 .creditFill { height: 100%; background: var(--color-accent); border-radius: var(--radius-full); transition: width var(--duration-slow) var(--ease-out); }
+.creditReset { font-size: var(--font-size-xs); color: var(--color-text-tertiary); margin-top: var(--space-3); }
+
+/* Son belgeler listesi */
 .docsList { display: flex; flex-direction: column; gap: var(--space-3); }
 .docItem { display: flex; align-items: center; gap: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); transition: all var(--duration-fast) var(--ease-out); }
 .docItem:hover { background: var(--color-surface-hover); }
@@ -35,8 +59,32 @@
 .statusCompleted { background: var(--color-success-bg); color: var(--color-success); }
 .statusProcessing { background: var(--color-warning-bg); color: var(--color-warning); }
 .statusError { background: var(--color-error-bg); color: var(--color-error); }
+
+/* Tümünü gör linki */
+.docsViewAll { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); text-decoration: none; transition: all var(--duration-fast) var(--ease-out); align-self: flex-start; margin-top: var(--space-2); }
+.docsViewAll:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+/* Onboarding kartı — ilk defa giriş yapan kullanıcı */
+.onboardingCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center; }
+.onboardingIcon { width: 64px; height: 64px; border-radius: 50%; background: var(--color-accent-light); display: grid; place-items: center; margin: 0 auto var(--space-5); color: var(--color-accent); }
+.onboardingTitle { font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin-bottom: var(--space-3); }
+.onboardingDesc { font-size: var(--font-size-base); color: var(--color-text-secondary); line-height: var(--line-height-relaxed); max-width: 480px; margin: 0 auto var(--space-8); }
+.onboardingCta { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-8); background: var(--color-accent); color: white; border-radius: var(--radius-full); font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); text-decoration: none; transition: all var(--duration-fast) var(--ease-out); }
+.onboardingCta:hover { background: var(--color-accent-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(17,24,39,0.25); color: white; }
+
+/* Boş durum */
 .emptyState { text-align: center; padding: var(--space-12); color: var(--color-text-tertiary); }
 .emptyIcon { margin-bottom: var(--space-4); opacity: 0.4; }
 .emptyText { font-size: var(--font-size-sm); }
+
+/* Responsive */
 @media (max-width: 1024px) { .statsGrid { grid-template-columns: repeat(2, 1fr); } .quickActions { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px) { .statsGrid { grid-template-columns: 1fr; } .quickActions { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .dashboard { padding: calc(var(--navbar-height) + var(--space-4)) var(--space-4) var(--space-8); }
+  .statsGrid { grid-template-columns: 1fr; }
+  .quickActions { grid-template-columns: 1fr; }
+  .welcomeCard { flex-direction: column; align-items: flex-start; }
+  .welcomeCta { width: 100%; justify-content: center; }
+}
+
+
