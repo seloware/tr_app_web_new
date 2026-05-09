@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 /**
  * TransLingua — ChatPage (AI Asistan)
  *
@@ -13,6 +14,8 @@ import { supabase } from '../lib/supabase';
 import { askAboutDocument } from '../lib/ai';
 import type { Document } from '../types';
 import styles from '../styles/components/chat.module.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 /** Sohbet mesajı yapısı */
 interface Message {
@@ -187,7 +190,22 @@ export default function ChatPage() {
               </div>
               <div>
                 <div className={`${styles.msgBubble} ${msg.role === 'user' ? styles.msgBubbleUser : styles.msgBubbleAi}`}>
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <div className="markdown-body">
+                      <ReactMarkdown remarkPlugins={[remarkGfm as any]} components={{
+                      // To prevent large margins in chat bubbles
+                      p: ({node, ...props}) => <p style={{margin: 0, paddingBottom: '0.5em'}} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{margin: 0, paddingLeft: '1.5em', paddingBottom: '0.5em'}} {...props} />,
+                      h1: ({node, ...props}) => <h3 style={{margin: '0.5em 0'}} {...props} />,
+                      h2: ({node, ...props}) => <h4 style={{margin: '0.5em 0'}} {...props} />,
+                      h3: ({node, ...props}) => <h5 style={{margin: '0.5em 0'}} {...props} />,
+                    }}>
+                      {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
                 <div className={styles.msgTime}>
                   {msg.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}

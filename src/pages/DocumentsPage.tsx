@@ -1,18 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * TransLingua — DocumentsPage (Dokümanlar Sayfası)
  *
  * Kullanıcının yüklediği ve çevirdiği tüm belgelerin listelendiği sayfa.
  * Her kart için durum, çeviri metnini görüntüleme ve silme işlemleri içerir.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, MessageSquare, Trash2, FolderOpen, Eye, X, Languages } from 'lucide-react';
+import { FileText, MessageSquare, Trash2, FolderOpen, Eye, X, Languages, DownloadCloud } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { STATUS_LABELS } from '../lib/constants';
 import type { Document, Translation } from '../types';
 import styles from '../styles/components/documents.module.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import html2pdf from 'html2pdf.js';
 
 /** Belge + varsa ilk çeviri bilgisi */
 interface DocumentWithTranslation extends Document {
@@ -23,6 +27,7 @@ export default function DocumentsPage() {
   const { profile } = useAuth();
   const [documents, setDocuments] = useState<DocumentWithTranslation[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithTranslation | null>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Belgeleri ve çevirilerini birlikte çek
   useEffect(() => {
@@ -64,6 +69,20 @@ export default function DocumentsPage() {
     await supabase.from('documents').delete().eq('id', id);
     setDocuments(prev => prev.filter(d => d.id !== id));
     if (selectedDoc?.id === id) setSelectedDoc(null);
+  };
+
+  /** PDF Olarak İndir */
+  const handleDownloadPDF = () => {
+    if (!modalContentRef.current || !selectedDoc) return;
+    const opt = {
+      margin:       15,
+      filename:     `${selectedDoc.original_name.replace('.pdf', '')}_ceviri.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    // @ts-expect-error html2pdf is not typed
+    html2pdf().set(opt).from(modalContentRef.current).save();
   };
 
   return (
@@ -167,14 +186,19 @@ export default function DocumentsPage() {
                   <h2 className={styles.modalTitle}>{selectedDoc.original_name}</h2>
                   <p className={styles.modalSub}>Türkçe Çeviri</p>
                 </div>
-                <button className={styles.modalClose} onClick={() => setSelectedDoc(null)}>
-                  <X size={20} />
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button className={styles.btnView} style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)', border: 'none', padding: '8px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '500' }} onClick={handleDownloadPDF}>
+                    <DownloadCloud size={16} /> PDF İndir
+                  </button>
+                  <button className={styles.modalClose} onClick={() => setSelectedDoc(null)}>
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-              <div className={styles.modalBody}>
-                {selectedDoc.translation?.translated_text?.pages.map((page, i) => (
-                  <p key={i} className={styles.modalText}>{page}</p>
-                ))}
+              <div className={`${styles.modalBody} markdown-body`} ref={modalContentRef}>
+                <ReactMarkdown remarkPlugins={[remarkGfm as any]}>
+                  {selectedDoc.translation?.translated_text?.pages.join('\n\n') || ''}
+                </ReactMarkdown>
               </div>
             </motion.div>
           </motion.div>

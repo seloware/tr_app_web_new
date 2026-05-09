@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -7,9 +8,13 @@ import { STUDY_SUBJECTS, CREDIT_COSTS } from '../lib/constants';
 import toast from 'react-hot-toast';
 import {
   BookOpen, Upload, File as FileIcon, X, Check,
-  Image as ImageIcon, Copy, RefreshCw
+  Image as ImageIcon, Copy, RefreshCw, DownloadCloud
 } from 'lucide-react';
 import styles from '../styles/components/studynotes.module.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import html2pdf from 'html2pdf.js';
+import React from 'react';
 
 type Step = 'upload' | 'processing' | 'result';
 
@@ -26,6 +31,7 @@ export default function StudyNotesPage() {
   const [subject, setSubject] = useState(STUDY_SUBJECTS[0]);
   const [isDragging, setIsDragging] = useState(false);
   const [generatedNotes, setGeneratedNotes] = useState<string>('');
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -170,6 +176,20 @@ export default function StudyNotesPage() {
     setStep('upload');
   };
 
+    /** PDF Olarak İndir */
+  const handleDownloadPDF = () => {
+    if (!contentRef.current) return;
+    const opt = {
+      margin:       15,
+      filename:     `${subject}_Notlari.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    // @ts-expect-error html2pdf is not typed
+    html2pdf().set(opt).from(contentRef.current).save();
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -292,6 +312,9 @@ export default function StudyNotesPage() {
                   {subject} Notları Hazır
                 </div>
                 <div className={styles.resultsActions}>
+                  <button className={styles.actionBtn} onClick={handleDownloadPDF} style={{ color: 'var(--color-success)', borderColor: 'var(--color-success-bg)' }}>
+                    <DownloadCloud size={16} /> PDF İndir
+                  </button>
                   <button className={styles.actionBtn} onClick={handleCopy}>
                     <Copy size={16} /> Kopyala
                   </button>
@@ -301,16 +324,10 @@ export default function StudyNotesPage() {
                 </div>
               </div>
 
-              <div className={styles.markdownContent}>
-                {/* Note: Normally we'd use react-markdown here. For now, simple line splits. */}
-                {generatedNotes.split('\n').map((line, i) => {
-                  if (line.startsWith('# ')) return <h1 key={i}>{line.substring(2)}</h1>;
-                  if (line.startsWith('## ')) return <h2 key={i}>{line.substring(3)}</h2>;
-                  if (line.startsWith('### ')) return <h3 key={i}>{line.substring(4)}</h3>;
-                  if (line.startsWith('- ')) return <li key={i} style={{ marginLeft: 24, marginBottom: 8 }}>{line.substring(2)}</li>;
-                  if (line.trim() === '') return <br key={i} />;
-                  return <p key={i}>{line}</p>;
-                })}
+              <div className={`${styles.markdownContent} markdown-body`} ref={contentRef} style={{ padding: 'var(--space-4)', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)' }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm as any]}>
+                  {generatedNotes}
+                </ReactMarkdown>
               </div>
             </motion.div>
           )}
@@ -322,7 +339,7 @@ export default function StudyNotesPage() {
 }
 
 // Inline Sparkles icon since it wasn't imported from lucide-react above
-function SparklesIcon(props: any) {
+function SparklesIcon(props: React.SVGProps<SVGSVGElement> & { size?: number | string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>

@@ -115,7 +115,12 @@ export async function translateDocument(
   sourceLang: string,
   targetLang: string = 'tr'
 ): Promise<string> {
-  const systemPrompt = `Sen profesyonel bir belge çevirmensin. Aşağıdaki metni ${sourceLang} dilinden ${targetLang} diline çevir. Orijinal biçimlendirmeyi, paragraf yapısını ve anlamı koru. Sadece çevrilmiş metni yaz, açıklama ekleme.`;
+  const systemPrompt = `Sen profesyonel bir belge çevirmensin. Aşağıdaki metni ${sourceLang} dilinden ${targetLang} diline çevir.
+Çeviriyi MUTLAKA yapılandırılmış bir biçimde, Markdown formatında oluştur. 
+Orijinal belgedeki başlıkları h1 (#), h2 (##), h3 (###) olarak belirt. 
+Eğer metinde maddeler varsa veya okunabilirliği artıracaksa listeler (bullet points) kullan.
+Önemli kelimeleri kalın (**kalın**) yaz.
+Sadece çevrilmiş ve formatlanmış Markdown metni yaz, başka açıklama ekleme.`;
   return callAI(text, systemPrompt);
 }
 
@@ -143,7 +148,9 @@ export async function askAboutDocument(
   documentText: string,
   question: string
 ): Promise<string> {
-  const systemPrompt = `Sen akıllı bir doküman asistanısın. Kullanıcı bir belge yükledi ve bu belge hakkında sorular soruyor. Türkçe yanıt ver, detaylı ve yardımsever ol. Aşağıdaki belge içeriğini bağlam olarak kullan.`;
+  const systemPrompt = `Sen akıllı bir doküman asistanısın. Kullanıcı bir belge yükledi ve bu belge hakkında sorular soruyor. 
+Türkçe yanıt ver, detaylı ve yardımsever ol. Aşağıdaki belge içeriğini bağlam olarak kullan.
+Yanıtlarını MUTLAKA Markdown formatında yapılandırarak ver. Başlıklar, alt başlıklar, maddeler ve kalın metinler kullanarak okunabilirliği maksimuma çıkar.`;
   const prompt = `Belge İçeriği:\n${documentText.slice(0, 30000)}\n\n---\n\nKullanıcı Sorusu: ${question}`;
   return callAI(prompt, systemPrompt);
 }
@@ -166,15 +173,14 @@ export async function generateStudyNotes(
 
   const systemPrompt = `Sen uzman bir eğitim asistanısın. Öğrencinin gönderdiği ders materyallerini (ders notları, kitap sayfaları, sunum slaytları vb.) analiz ederek kapsamlı, yapılandırılmış ve anlaşılır ders notları oluştur.${subjectStr}${titleStr}
 
-Notları şu formatta oluştur:
-- Başlıklar ve alt başlıklar kullan
-- Önemli kavramları kalın yaz
-- Madde işaretleriyle özetler ekle
-- Tanımları vurgula
-- İlişkileri ve bağlantıları göster
-- Varsa formülleri ve denklemleri koru
+Notları şu formatta MUTLAKA Markdown kullanarak oluştur:
+- Markdown başlıkları (# Başlık, ## Alt Başlık) kullan
+- Önemli kavramları **kalın** yaz
+- Madde işaretleriyle listeler oluştur
+- Tanımları vurgula (örn: alıntı blokları ">" kullan)
+- Formülleri veya kodları kod bloğu içinde (\` veya \`\`\`) göster
 - Sonuna kısa bir özet ekle
-- Türkçe yaz`;
+- Kesinlikle Türkçe yaz`;
 
   const combined = contents.map((c, i) => `--- Kaynak ${i + 1} ---\n${c}`).join('\n\n');
   return callAI(combined, systemPrompt);
