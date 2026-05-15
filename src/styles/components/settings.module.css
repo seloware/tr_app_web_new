@@ -11,10 +11,12 @@
 }
 
 .title {
+  font-family: var(--font-heading);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-black);
   letter-spacing: var(--letter-spacing-tight);
   margin-bottom: var(--space-8);
+  color: var(--color-text-primary);
 }
 
 /* ── Kart Bileşeni ─────────────────────────────────────────────────────── */
@@ -54,18 +56,20 @@
 
 .input {
   width: 100%;
-  padding: var(--space-3) var(--space-4);
+  padding: 13px var(--space-4);
   border: 1.5px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
   font-family: var(--font-family);
   color: var(--color-text-primary);
-  background: var(--color-bg);
+  background: var(--color-bg-alt);
   outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out);
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
 }
 .input:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+  background: var(--color-surface);
 }
 .input::placeholder {
   color: var(--color-text-tertiary);
@@ -164,7 +168,7 @@
 .btnPrimary:hover:not(:disabled) {
   background: var(--color-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(79,70,229,0.3);
+  box-shadow: 0 4px 16px rgba(0, 87, 255, 0.25);
 }
 .btnPrimary:disabled {
   opacity: 0.6;

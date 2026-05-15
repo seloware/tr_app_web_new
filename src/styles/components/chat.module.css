@@ -1,5 +1,5 @@
 /* ========================================================================
-   TransLingua — Chat Page (v3)
+   TransLingua — Chat Page
    ======================================================================== */
 
 /* ── Sayfa ─────────────────────────────────────────────────────────────── */
@@ -20,7 +20,7 @@
   gap: 12px;
   padding-bottom: 14px;
   margin-bottom: 12px;
-  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .headerLeft {
@@ -34,8 +34,9 @@
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #111827;
+  color: var(--color-text-primary);
   white-space: nowrap;
+  font-family: var(--font-heading);
 }
 
 .docChip {
@@ -43,12 +44,12 @@
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  background: rgba(36, 84, 255, 0.07);
-  border: 1px solid rgba(36, 84, 255, 0.14);
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-medium);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #2454ff;
+  color: var(--color-accent);
   max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -69,18 +70,18 @@
   gap: 5px;
   height: 34px;
   padding: 0 13px;
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.05);
+  box-shadow: var(--shadow-xs);
   transition: border-color 0.15s, color 0.15s;
 }
-.newBtn:hover { border-color: rgba(17, 24, 39, 0.2); color: #111827; }
+.newBtn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
 .newBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Doküman seçici ─────────────────────────────────────────────────────── */
@@ -92,16 +93,16 @@
   gap: 7px;
   height: 34px;
   padding: 0 13px;
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font: inherit;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   cursor: pointer;
   max-width: 220px;
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.05);
+  box-shadow: var(--shadow-xs);
   transition: border-color 0.15s;
 }
 .docPickerBtn span {
@@ -109,7 +110,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.docPickerBtn:hover { border-color: rgba(17, 24, 39, 0.2); }
+.docPickerBtn:hover { border-color: var(--color-border-strong); }
 
 .docPickerDropdown {
   position: absolute;
@@ -118,10 +119,10 @@
   z-index: 50;
   width: 280px;
   padding: 6px;
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.07);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(17, 24, 39, 0.13);
+  box-shadow: var(--shadow-xl);
 }
 
 .docPickerItem {
@@ -134,7 +135,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #374151;
+  color: var(--color-text-secondary);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 650;
@@ -142,11 +143,11 @@
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
-.docPickerItem:hover { background: rgba(36, 84, 255, 0.06); color: #2454ff; }
-.docPickerItemActive { background: rgba(36, 84, 255, 0.08); color: #2454ff; }
+.docPickerItem:hover { background: var(--color-accent-light); color: var(--color-accent); }
+.docPickerItemActive { background: var(--color-accent-light); color: var(--color-accent); }
 .docPickerItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.docPickerEmpty { padding: 12px 10px; color: #9ca3af; font-size: 0.82rem; }
-.docPickerEmpty a { color: #2454ff; font-weight: 700; text-decoration: none; }
+.docPickerEmpty { padding: 12px 10px; color: var(--color-text-tertiary); font-size: 0.82rem; }
+.docPickerEmpty a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
 
 /* ── Sohbet gövdesi ─────────────────────────────────────────────────────── */
 .chatBody {
@@ -158,16 +159,16 @@
   gap: 14px;
   padding: 20px;
   border-radius: 20px;
-  border: 1px solid rgba(17, 24, 39, 0.07);
+  border: 1px solid var(--color-border);
   background:
-    radial-gradient(ellipse at 20% 0%, rgba(36, 84, 255, 0.05), transparent 50%),
-    #f9fafb;
+    radial-gradient(ellipse at 20% 0%, rgba(0, 87, 255, 0.04), transparent 50%),
+    var(--color-bg-alt);
   scrollbar-width: thin;
-  scrollbar-color: rgba(17, 24, 39, 0.1) transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 .chatBody::-webkit-scrollbar { width: 4px; }
 .chatBody::-webkit-scrollbar-track { background: transparent; }
-.chatBody::-webkit-scrollbar-thumb { background: rgba(17, 24, 39, 0.1); border-radius: 99px; }
+.chatBody::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 99px; }
 
 /* ── Mesajlar ───────────────────────────────────────────────────────────── */
 .msgRow {
@@ -196,14 +197,14 @@
   margin-top: 3px;
 }
 .msgAvatarUser {
-  background: #111827;
+  background: var(--color-accent);
   color: white;
 }
 .msgAvatarAi {
-  background: white;
-  color: #2454ff;
-  border: 1px solid rgba(36, 84, 255, 0.18);
-  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.07);
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-medium);
+  box-shadow: var(--shadow-xs);
 }
 
 /* Bubble wrapper */
@@ -223,21 +224,21 @@
   word-break: break-word;
 }
 .msgBubbleUser {
-  background: #111827;
+  background: var(--color-accent);
   color: white;
   border-bottom-right-radius: 4px;
 }
 .msgBubbleAi {
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.07);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-bottom-left-radius: 4px;
-  color: #111827;
-  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-xs);
 }
 
 .msgTime {
   font-size: 0.67rem;
-  color: #9ca3af;
+  color: var(--color-text-tertiary);
   padding: 0 2px;
 }
 .msgTimeRight { text-align: right; }
@@ -260,7 +261,7 @@
   display: inline-block;
   width: 2px;
   height: 14px;
-  background: #374151;
+  background: var(--color-text-secondary);
   vertical-align: middle;
   margin-left: 3px;
   border-radius: 1px;
@@ -272,7 +273,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--color-border-strong);
 }
 .typingDot:nth-child(1) { animation: typingBounce 1.2s ease-in-out infinite 0s; }
 .typingDot:nth-child(2) { animation: typingBounce 1.2s ease-in-out infinite 0.15s; }
@@ -291,12 +292,12 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.09);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
   font-size: 0.75rem;
-  color: #6b7280;
-  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.04);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-xs);
 }
 .pendingTag span { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pendingRemove {
@@ -304,11 +305,11 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--color-text-tertiary);
   padding: 0;
   line-height: 1;
 }
-.pendingRemove:hover { color: #ef4444; }
+.pendingRemove:hover { color: var(--color-error); }
 
 /* ── Giriş alanı ────────────────────────────────────────────────────────── */
 .inputWrap {
@@ -318,15 +319,15 @@
   margin-top: 10px;
   margin-bottom: 16px;
   padding: 10px 12px;
-  background: white;
-  border: 1.5px solid rgba(17, 24, 39, 0.09);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
   border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(17, 24, 39, 0.06);
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .inputWrap:focus-within {
-  border-color: rgba(36, 84, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(36, 84, 255, 0.06), 0 4px 20px rgba(17, 24, 39, 0.06);
+  border-color: rgba(0, 87, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 87, 255, 0.06), var(--shadow-sm);
 }
 
 .attachBtn {
@@ -336,14 +337,14 @@
   width: 34px;
   height: 34px;
   background: transparent;
-  border: 1px solid rgba(17, 24, 39, 0.09);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--color-text-tertiary);
   flex-shrink: 0;
   transition: color 0.12s, border-color 0.12s;
 }
-.attachBtn:hover { color: #2454ff; border-color: rgba(36, 84, 255, 0.3); }
+.attachBtn:hover { color: var(--color-accent); border-color: var(--color-accent-medium); }
 .attachBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .inputField {
@@ -355,13 +356,13 @@
   outline: 0;
   resize: none;
   background: transparent;
-  color: #111827;
+  color: var(--color-text-primary);
   font: inherit;
   font-size: 0.92rem;
   line-height: 1.55;
   align-self: center;
 }
-.inputField::placeholder { color: #c0c8d8; }
+.inputField::placeholder { color: var(--color-text-tertiary); }
 
 .sendBtn {
   width: 38px;
@@ -371,17 +372,17 @@
   place-items: center;
   border: 0;
   border-radius: 12px;
-  background: #111827;
+  background: var(--color-accent);
   color: white;
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s, transform 0.15s, opacity 0.15s;
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.2);
+  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.25);
 }
-.sendBtn:hover:not(:disabled) { background: #1e293b; transform: translateY(-1px); }
+.sendBtn:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
 .sendBtn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; transform: none; }
 
-.sendBtnStop { background: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25); }
+.sendBtnStop { background: var(--color-error); box-shadow: 0 4px 14px rgba(255, 59, 48, 0.25); }
 .sendBtnStop:hover:not(:disabled) { background: #dc2626; }
 
 /* ── Boş durum ──────────────────────────────────────────────────────────── */
@@ -400,25 +401,26 @@
   width: 54px;
   height: 54px;
   border-radius: 16px;
-  background: white;
-  border: 1px solid rgba(36, 84, 255, 0.14);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-medium);
   display: grid;
   place-items: center;
-  color: #2454ff;
-  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.08);
+  color: var(--color-accent);
+  box-shadow: 0 8px 28px rgba(0, 87, 255, 0.1);
   margin-bottom: 6px;
 }
 
 .emptyChatText {
   font-size: 1rem;
   font-weight: 750;
-  color: #111827;
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
+  font-family: var(--font-heading);
 }
 
 .emptyChatHint {
   max-width: 360px;
-  color: #9ca3af;
+  color: var(--color-text-tertiary);
   font-size: 0.85rem;
   line-height: 1.55;
 }
@@ -438,22 +440,22 @@
   align-items: center;
   gap: 9px;
   padding: 10px 14px;
-  background: white;
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 650;
-  color: #374151;
+  color: var(--color-text-secondary);
   cursor: pointer;
   text-align: left;
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04);
+  box-shadow: var(--shadow-xs);
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .quickBtn:hover {
-  border-color: rgba(36, 84, 255, 0.28);
-  color: #2454ff;
-  background: rgba(36, 84, 255, 0.03);
+  border-color: rgba(0, 87, 255, 0.28);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
 }
 
 .quickBtnIcon {
@@ -461,13 +463,13 @@
   height: 26px;
   display: grid;
   place-items: center;
-  background: rgba(36, 84, 255, 0.08);
+  background: var(--color-accent-light);
   border-radius: 7px;
-  color: #2454ff;
+  color: var(--color-accent);
   flex-shrink: 0;
   transition: background 0.15s;
 }
-.quickBtn:hover .quickBtnIcon { background: rgba(36, 84, 255, 0.14); }
+.quickBtn:hover .quickBtnIcon { background: var(--color-accent-medium); }
 
 /* ── Animasyonlar ───────────────────────────────────────────────────────── */
 @keyframes typingBounce {

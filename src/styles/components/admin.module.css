@@ -18,8 +18,8 @@
 .headerIcon {
   width: 48px; height: 48px;
   border-radius: var(--radius-lg);
-  background: rgba(99,102,241,0.08);
-  color: #6366f1;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   display: grid;
   place-items: center;
 }
@@ -189,9 +189,9 @@
   letter-spacing: 0.04em;
 }
 
-.badgeadmin { background: rgba(99,102,241,0.1); color: #6366f1; }
-.badgesubscriber { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-.badgeuser { background: var(--color-accent-light); color: var(--color-text-secondary); }
+.badgeadmin { background: var(--color-accent-light); color: var(--color-accent); }
+.badgesubscriber { background: var(--color-success-bg); color: var(--color-success); }
+.badgeuser { background: var(--color-bg-alt); color: var(--color-text-secondary); }
 .badgePlan { background: var(--color-bg-alt); color: var(--color-text-secondary); }
 
 .userCredits {

@@ -82,6 +82,21 @@ export default function AuthPage() {
             ))}
           </div>
         </div>
+
+        <div className={styles.authLeftStats}>
+          <div className={styles.authLeftStat}>
+            <span className={styles.authLeftStatNum}>12+</span>
+            <span className={styles.authLeftStatLabel}>Kaynak Dil</span>
+          </div>
+          <div className={styles.authLeftStat}>
+            <span className={styles.authLeftStatNum}>150+</span>
+            <span className={styles.authLeftStatLabel}>Sayfa Limiti</span>
+          </div>
+          <div className={styles.authLeftStat}>
+            <span className={styles.authLeftStatNum}>256-bit</span>
+            <span className={styles.authLeftStatLabel}>Şifreleme</span>
+          </div>
+        </div>
       </div>
 
       {/* ── Right Panel ─── */}

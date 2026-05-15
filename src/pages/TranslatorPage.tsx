@@ -202,9 +202,23 @@ export default function TranslatorPage() {
 
       {/* İlerleme adım çubuğu */}
       <div className={styles.steps}>
-        {[0, 1, 2, 3].map(i => (
-          <div key={i} className={`${styles.step} ${i < stepIndex ? styles.stepDone : ''} ${i === stepIndex ? styles.stepActive : ''}`} />
-        ))}
+        {(['Yükle', 'Ayarla', 'Çeviri', 'Sonuç'] as const).map((label, i) => {
+          const isDone   = i < stepIndex;
+          const isActive = i === stepIndex;
+          return (
+            <div key={i} className={styles.step}>
+              <div className={`${styles.stepDot} ${isDone ? styles.stepDotDone : ''} ${isActive ? styles.stepDotActive : ''}`}>
+                {isDone ? '✓' : i + 1}
+              </div>
+              <span className={`${styles.stepName} ${isDone ? styles.stepNameDone : ''} ${isActive ? styles.stepNameActive : ''}`}>
+                {label}
+              </span>
+              {i < 3 && (
+                <div className={`${styles.stepLine} ${isDone ? styles.stepLineDone : ''} ${isActive ? styles.stepLineActive : ''}`} />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <AnimatePresence mode="wait">
@@ -341,7 +355,7 @@ export default function TranslatorPage() {
                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
               >
                 <svg width="120" height="120" viewBox="0 0 120 120">
-                  <defs><linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#667EEA" /><stop offset="100%" stopColor="#764BA2" /></linearGradient></defs>
+                  <defs><linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#0057FF" /><stop offset="100%" stopColor="#0EA5E9" /></linearGradient></defs>
                   <circle className={styles.progressCircleBg} cx="60" cy="60" r="52" />
                   <circle className={styles.progressCircle} cx="60" cy="60" r="52" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
                 </svg>

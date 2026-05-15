@@ -55,14 +55,15 @@
 .navLogo {
   width: 36px; height: 36px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: var(--color-accent);
   display: grid;
   place-items: center;
-  font-weight: var(--font-weight-black);
+  font-family: var(--font-heading);
+  font-weight: 900;
   font-size: var(--font-size-xs);
   color: white;
   letter-spacing: -0.04em;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+  box-shadow: 0 2px 8px rgba(0, 87, 255, 0.25);
 }
 
 .navTitle {
@@ -114,7 +115,7 @@
   background: var(--color-accent);
   border-radius: var(--radius-full);
   z-index: 0;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.3);
+  box-shadow: 0 2px 8px rgba(0, 87, 255, 0.25);
 }
 
 .navLinkContent {
@@ -150,10 +151,10 @@
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
   text-decoration: none;
-  box-shadow: 0 1px 6px rgba(79,70,229,0.3);
+  box-shadow: 0 1px 6px rgba(0, 87, 255, 0.25);
 }
 .navCta:hover {
-  box-shadow: 0 4px 14px rgba(79,70,229,0.4);
+  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.35);
   background: var(--color-accent-hover);
   color: white;
 }
@@ -194,8 +195,9 @@
   background: var(--color-accent);
   display: grid;
   place-items: center;
+  font-family: var(--font-heading);
   font-size: 0.6875rem;
-  font-weight: var(--font-weight-bold);
+  font-weight: 800;
   color: white;
   flex-shrink: 0;
   letter-spacing: -0.01em;
@@ -303,11 +305,11 @@
 }
 
 .dropdownItemAdmin {
-  color: #6366f1;
+  color: var(--color-accent);
 }
 .dropdownItemAdmin:hover {
-  background: rgba(99,102,241,0.06);
-  color: #4f46e5;
+  background: var(--color-accent-light);
+  color: var(--color-accent-hover);
 }
 
 .dropdownItemDanger {
@@ -433,7 +435,7 @@
 }
 
 .mobileLinkAdmin {
-  color: #6366f1;
+  color: var(--color-accent);
 }
 
 .mobileLinkDanger {

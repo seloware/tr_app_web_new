@@ -20,10 +20,12 @@
 }
 
 .title {
+  font-family: var(--font-heading);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-black);
   letter-spacing: var(--letter-spacing-tight);
   margin-bottom: var(--space-1);
+  color: var(--color-text-primary);
 }
 
 .desc {
@@ -45,12 +47,12 @@
   text-decoration: none;
   transition: background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.2);
+  box-shadow: 0 2px 8px rgba(0, 87, 255, 0.22);
 }
 .newBtn:hover {
   background: var(--color-accent-hover);
   color: white;
-  box-shadow: 0 8px 22px rgba(79,70,229,0.35);
+  box-shadow: 0 8px 22px rgba(0, 87, 255, 0.35);
 }
 
 /* ── Boş Durum ─────────────────────────────────────────────────────────── */
@@ -94,12 +96,13 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  transition: box-shadow var(--duration-normal) var(--ease-out), border-color var(--duration-normal) var(--ease-out);
+  transition: box-shadow var(--duration-normal) var(--ease-out), border-color var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
   will-change: transform;
 }
 .card:hover {
   box-shadow: var(--shadow-lg);
-  border-color: var(--color-border-strong);
+  border-color: var(--color-accent-medium);
+  transform: translateY(-2px);
 }
 
 /* Kart üst kısım */

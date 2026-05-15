@@ -3,6 +3,8 @@
    Apple/Tesla-inspired premium white theme
    ======================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,opsz,wght@0,6..18,300;0,6..18,400;0,6..18,500;0,6..18,600;0,6..18,700;0,6..18,800;1,6..18,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
 /* ---------- CSS Custom Properties (Design Tokens) ---------- */
 :root {
   /* Colors — Primary */
@@ -14,20 +16,20 @@
 
   /* Colors — Text */
   --color-text-primary: #1D1D1F;
-  --color-text-secondary: #86868B;
+  --color-text-secondary: #6E6E73;
   --color-text-tertiary: #AEAEB2;
   --color-text-inverse: #FFFFFF;
 
-  /* Colors — Brand (Indigo academic palette) */
-  --color-accent: #4f46e5;
-  --color-accent-hover: #4338ca;
-  --color-accent-light: rgba(79, 70, 229, 0.07);
-  --color-accent-medium: rgba(79, 70, 229, 0.14);
-  --color-gradient: #4f46e5;
-  --color-gradient-subtle: rgba(79, 70, 229, 0.04);
-  --color-gradient-hover: #4338ca;
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
+  /* Colors — Brand (Blue precision palette) */
+  --color-accent: #0057FF;
+  --color-accent-hover: #0040CC;
+  --color-accent-light: rgba(0, 87, 255, 0.06);
+  --color-accent-medium: rgba(0, 87, 255, 0.12);
+  --color-gradient: #0057FF;
+  --color-gradient-subtle: rgba(0, 87, 255, 0.04);
+  --color-gradient-hover: #0040CC;
+  --color-primary: #0057FF;
+  --color-primary-hover: #0040CC;
 
   /* Colors — Semantic */
   --color-success: #30D158;
@@ -45,8 +47,9 @@
   --color-divider: rgba(0, 0, 0, 0.04);
 
   /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  --font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
 
   --font-size-xs: 0.6875rem;    /* 11px */
   --font-size-sm: 0.8125rem;    /* 13px */
@@ -106,8 +109,8 @@
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.05), 0 16px 48px rgba(0, 0, 0, 0.08);
   --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.06), 0 32px 80px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.15);
-  --shadow-glow-strong: 0 0 60px rgba(79, 70, 229, 0.25);
+  --shadow-glow: 0 0 40px rgba(0, 87, 255, 0.15);
+  --shadow-glow-strong: 0 0 60px rgba(0, 87, 255, 0.25);
 
   /* Transitions */
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -205,11 +208,13 @@ a:hover {
 .container--wide { max-width: var(--max-width-wide); }
 
 .text-gradient {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
+  background: linear-gradient(135deg, #0057FF 0%, #0EA5E9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+h1, h2, h3 { font-family: var(--font-heading); }
 
 .glass {
   background: rgba(255, 255, 255, 0.72);

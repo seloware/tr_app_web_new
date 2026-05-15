@@ -1,5 +1,5 @@
 /* ========================================================================
-   Auth Page — Split-screen premium redesign
+   Auth Page — Clean light split-screen (Apple/Tesla style)
    ======================================================================== */
 
 .authPage {
@@ -10,46 +10,47 @@
 
 /* ── Left Panel ─────────────────────────── */
 .authLeft {
-  background: linear-gradient(145deg, #0f0e1a 0%, #1a1435 50%, #0d1226 100%);
+  background: #F5F5F7;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   padding: var(--space-12);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+/* Subtle dot-grid background (same as landing hero) */
 .authLeftBg {
   position: absolute;
   inset: 0;
-  background-image:
-    radial-gradient(circle at 25% 25%, rgba(79,70,229,0.2) 0%, transparent 55%),
-    radial-gradient(circle at 75% 75%, rgba(139,92,246,0.15) 0%, transparent 55%),
-    radial-gradient(circle at 60% 20%, rgba(14,165,233,0.08) 0%, transparent 40%);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
   pointer-events: none;
+  opacity: 0.5;
 }
 
+/* Soft blue radial glow */
 .floatingOrb1 {
   position: absolute;
-  width: 240px; height: 240px;
+  width: 360px; height: 360px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(79,70,229,0.12) 0%, transparent 70%);
-  top: 5%; right: 10%;
+  background: radial-gradient(circle, rgba(0, 87, 255, 0.07) 0%, transparent 70%);
+  top: -60px; right: -80px;
   pointer-events: none;
-  animation: floatSlow 8s ease-in-out infinite;
-  filter: blur(20px);
+  filter: blur(32px);
 }
 
 .floatingOrb2 {
   position: absolute;
-  width: 320px; height: 320px;
+  width: 280px; height: 280px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
-  bottom: 10%; left: 5%;
+  background: radial-gradient(circle, rgba(0, 87, 255, 0.05) 0%, transparent 70%);
+  bottom: 40px; left: -60px;
   pointer-events: none;
-  animation: floatSlow 12s ease-in-out infinite reverse;
-  filter: blur(24px);
+  filter: blur(28px);
 }
 
+/* Logo */
 .authLeftLogo {
   position: relative;
   z-index: 1;
@@ -60,24 +61,28 @@
 }
 
 .authLeftLogoMark {
-  width: 40px; height: 40px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--color-accent);
   display: grid;
   place-items: center;
   color: white;
+  font-family: var(--font-heading);
   font-weight: 900;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   letter-spacing: -0.02em;
-  box-shadow: 0 4px 16px rgba(79,70,229,0.4);
+  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.25);
 }
 
 .authLeftLogoText {
-  color: white;
+  color: var(--color-text-primary);
+  font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 1.0625rem;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
 }
 
+/* Main content */
 .authLeftContent {
   position: relative;
   z-index: 1;
@@ -86,19 +91,17 @@
 }
 
 .authLeftQuote {
-  font-size: 1.75rem;
+  font-family: var(--font-heading);
+  font-size: 2rem;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
   letter-spacing: -0.03em;
-  color: white;
-  margin-bottom: var(--space-5);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-6);
 }
 
 .authLeftQuoteAccent {
-  background: linear-gradient(90deg, #818cf8, #a78bfa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-accent);
 }
 
 .authLeftFeatures {
@@ -114,20 +117,66 @@
 }
 
 .authLeftFeatureDot {
-  width: 6px; height: 6px;
+  width: 20px; height: 20px;
   border-radius: 50%;
-  background: rgba(129,140,248,0.6);
+  background: var(--color-accent-light);
+  border: 1px solid rgba(0, 87, 255, 0.15);
+  display: grid;
+  place-items: center;
   flex-shrink: 0;
+}
+
+.authLeftFeatureDot::after {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
 }
 
 .authLeftFeatureText {
   font-size: var(--font-size-sm);
-  color: rgba(255,255,255,0.5);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Stats bar at bottom */
+.authLeftStats {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.authLeftStat {
+  text-align: center;
+}
+
+.authLeftStatNum {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  display: block;
+}
+
+.authLeftStatLabel {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-top: 2px;
+  display: block;
 }
 
 /* ── Right Panel ─────────────────────────── */
 .authRight {
-  background: var(--color-bg);
+  background: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,13 +187,13 @@
 .authForm {
   width: 100%;
   max-width: 380px;
-  animation: scaleIn 0.4s var(--ease-spring) both;
 }
 
 .authFormTitle {
+  font-family: var(--font-heading);
   font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-black);
-  letter-spacing: var(--letter-spacing-tight);
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--color-text-primary);
   margin-bottom: var(--space-2);
 }
@@ -163,7 +212,7 @@
 .inputLabel {
   display: block;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 6px;
 }
@@ -183,19 +232,20 @@
 
 .input {
   width: 100%;
-  padding: 12px 42px 12px 42px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  padding: 13px 42px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
   font-family: var(--font-family);
   color: var(--color-text-primary);
-  background: var(--color-surface);
+  background: var(--color-bg-alt);
   outline: none;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
 }
 .input:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-light);
+  background: var(--color-surface);
 }
 .input::placeholder {
   color: var(--color-text-tertiary);
@@ -216,29 +266,28 @@
   border-radius: var(--radius-sm);
   transition: color var(--duration-fast);
 }
-.passwordToggle:hover {
-  color: var(--color-text-primary);
-}
+.passwordToggle:hover { color: var(--color-text-primary); }
 
 .submitBtn {
   width: 100%;
-  padding: 13px var(--space-6);
+  padding: 14px var(--space-6);
   background: var(--color-accent);
   color: white;
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-heading);
+  letter-spacing: 0.01em;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   margin-top: var(--space-2);
   margin-bottom: var(--space-5);
-  box-shadow: 0 2px 12px rgba(79,70,229,0.3);
+  box-shadow: 0 2px 10px rgba(0, 87, 255, 0.25);
 }
-.submitBtn:hover {
-  box-shadow: 0 8px 24px rgba(79,70,229,0.4);
+.submitBtn:hover:not(:disabled) {
   background: var(--color-accent-hover);
+  box-shadow: 0 6px 20px rgba(0, 87, 255, 0.35);
 }
 .submitBtn:disabled {
   opacity: 0.5;
@@ -260,7 +309,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--color-border);
+  background: rgba(0, 0, 0, 0.07);
 }
 
 .googleBtn {
@@ -269,28 +318,28 @@
   justify-content: center;
   gap: var(--space-3);
   width: 100%;
-  padding: 12px var(--space-6);
+  padding: 13px var(--space-6);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
   font-family: var(--font-family);
-  font-weight: var(--font-weight-medium);
+  font-weight: 600;
   color: var(--color-text-primary);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
 }
 .googleBtn:hover {
-  background: var(--color-surface-hover);
-  border-color: rgba(17,24,39,0.2);
-  box-shadow: var(--shadow-xs);
+  background: var(--color-bg-alt);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .authToggle {
   text-align: center;
   margin-top: var(--space-8);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
@@ -298,24 +347,19 @@
 .authToggleBtn {
   background: none;
   border: none;
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  font-weight: 700;
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-family: var(--font-family);
-  text-decoration: underline;
-  text-decoration-color: rgba(17,24,39,0.25);
-  text-underline-offset: 3px;
-  transition: text-decoration-color var(--duration-fast);
+  transition: opacity var(--duration-fast);
 }
-.authToggleBtn:hover {
-  text-decoration-color: var(--color-text-primary);
-}
+.authToggleBtn:hover { opacity: 0.75; }
 
 .authError {
   padding: var(--space-3) var(--space-4);
   background: var(--color-error-bg);
-  border: 1px solid rgba(255,59,48,0.15);
+  border: 1px solid rgba(255, 59, 48, 0.15);
   border-radius: var(--radius-md);
   color: var(--color-error);
   font-size: var(--font-size-sm);
