@@ -5,20 +5,24 @@
  * Kullanıcının yüklediği ve çevirdiği tüm belgelerin listelendiği sayfa.
  * Her kart için durum, çeviri metnini görüntüleme ve silme işlemleri içerir.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { FileText, MessageSquare, Trash2, FolderOpen, Eye, X, Languages, DownloadCloud, FileType, FileCode } from 'lucide-react';
+import { FileText, MessageSquare, Trash2, FolderOpen, Eye, X, Languages, DownloadCloud, FileType, FileCode, Layers, Loader, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { exportMarkdownToPDF, exportMarkdownToDOCX, exportMarkdownToTxt } from '../lib/exporters';
 import { SPRING_TIGHT } from '../components/ui/motion';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { summarizeDocument } from '../lib/ai';
 import { STATUS_LABELS } from '../lib/constants';
 import type { Document, Translation } from '../types';
 import styles from '../styles/components/documents.module.css';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import PDFOverlayViewer from '../components/PDFOverlayViewer';
 
 /** Belge + varsa ilk çeviri bilgisi */
 interface DocumentWithTranslation extends Document {
@@ -32,6 +36,17 @@ export default function DocumentsPage() {
   const [selectedDoc, setSelectedDoc] = useState<DocumentWithTranslation | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState<null | 'pdf' | 'docx' | 'txt'>(null);
+
+  // PDF Overlay Viewer
+  const [overlayDoc, setOverlayDoc] = useState<DocumentWithTranslation | null>(null);
+  const [overlayUrl, setOverlayUrl] = useState('');
+  const [overlayLoading, setOverlayLoading] = useState(false);
+
+  // Özet modal
+  const [summaryDoc, setSummaryDoc] = useState<DocumentWithTranslation | null>(null);
+  const [summaryText, setSummaryText] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const summaryAbortRef = useRef<AbortController | null>(null);
 
   // Belgeleri ve çevirilerini birlikte çek
   useEffect(() => {
@@ -73,6 +88,48 @@ export default function DocumentsPage() {
     await supabase.from('documents').delete().eq('id', id);
     setDocuments(prev => prev.filter(d => d.id !== id));
     if (selectedDoc?.id === id) setSelectedDoc(null);
+  };
+
+  /** PDF Overlay Viewer'ı aç — Supabase Storage'dan imzalı URL al */
+  const openOverlay = async (doc: DocumentWithTranslation) => {
+    if (!doc.original_storage_path) {
+      toast.error('Orijinal PDF bulunamadı.');
+      return;
+    }
+    setOverlayLoading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('originals')
+        .createSignedUrl(doc.original_storage_path, 3600);
+      if (error || !data?.signedUrl) throw new Error('PDF URL alınamadı');
+      setOverlayUrl(data.signedUrl);
+      setOverlayDoc(doc);
+    } catch (e: any) {
+      toast.error(e.message || 'PDF açılamadı');
+    } finally {
+      setOverlayLoading(false);
+    }
+  };
+
+  /** Özet oluştur */
+  const openSummary = async (doc: DocumentWithTranslation) => {
+    const text = doc.translation?.translated_text?.pages.join('\n\n');
+    if (!text) { toast.error('Çeviri metni bulunamadı.'); return; }
+    setSummaryDoc(doc);
+    setSummaryText('');
+    setSummaryLoading(true);
+    summaryAbortRef.current = new AbortController();
+    try {
+      await summarizeDocument(
+        text,
+        summaryAbortRef.current.signal,
+        (_delta, full) => setSummaryText(full),
+      );
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') toast.error(e.message || 'Özet oluşturulamadı');
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
   /** Çeviriyi seçilen formatta indir */
@@ -178,6 +235,40 @@ export default function DocumentsPage() {
 
                 {/* İşlem butonları */}
                 <div className={styles.cardActions}>
+                  {/* PDF üstüne yaz — ana özellik */}
+                  {doc.status === 'completed' && doc.original_storage_path && (
+                    <motion.button
+                      className={styles.btnOverlay}
+                      onClick={() => openOverlay(doc)}
+                      disabled={overlayLoading}
+                      whileHover={reduced ? undefined : { y: -1 }}
+                      whileTap={reduced ? undefined : { scale: 0.95 }}
+                      transition={SPRING_TIGHT}
+                      title="Çeviriyi orijinal PDF üzerinde göster"
+                    >
+                      {overlayLoading && overlayDoc?.id === doc.id
+                        ? <Loader size={13} style={{ animation: 'spin 0.8s linear infinite' }} />
+                        : <Layers size={13} />
+                      }
+                      PDF Görünümü
+                    </motion.button>
+                  )}
+
+                  {/* Özet çıkar */}
+                  {doc.translation?.translated_text && (
+                    <motion.button
+                      className={styles.btnSummary}
+                      onClick={() => openSummary(doc)}
+                      whileHover={reduced ? undefined : { y: -1 }}
+                      whileTap={reduced ? undefined : { scale: 0.95 }}
+                      transition={SPRING_TIGHT}
+                      title="Yapay zeka ile belge özeti oluştur"
+                    >
+                      <BookOpen size={13} /> Özetle
+                    </motion.button>
+                  )}
+
+                  {/* Çeviri metni görüntüle */}
                   {doc.translation?.translated_text && (
                     <motion.button
                       className={styles.btnView}
@@ -186,7 +277,7 @@ export default function DocumentsPage() {
                       whileTap={reduced ? undefined : { scale: 0.95 }}
                       transition={SPRING_TIGHT}
                     >
-                      <Eye size={14} /> Görüntüle
+                      <Eye size={14} /> Metin
                     </motion.button>
                   )}
                   <motion.div
@@ -293,9 +384,97 @@ export default function DocumentsPage() {
                 </div>
               </div>
               <div className={`${styles.modalBody} markdown-body`}>
-                <ReactMarkdown remarkPlugins={[remarkGfm as any]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm as any, remarkMath as any]}
+                  rehypePlugins={[rehypeKatex as any]}
+                >
                   {selectedDoc.translation?.translated_text?.pages.join('\n\n') || ''}
                 </ReactMarkdown>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── PDF Overlay Viewer ─────────────────────────────────── */}
+      <AnimatePresence>
+        {overlayDoc && overlayUrl && (
+          <PDFOverlayViewer
+            pdfUrl={overlayUrl}
+            documentName={overlayDoc.original_name}
+            sourceLang={overlayDoc.original_language || 'en'}
+            overlayData={overlayDoc.translation?.translated_text?.overlay}
+            onOverlayGenerated={async (data) => {
+              // Eski belge için yeni üretilen overlay'i kaydet
+              if (!overlayDoc.translation) return;
+              const existingText = overlayDoc.translation.translated_text;
+              const newText = { ...existingText, pages: existingText?.pages ?? [''], overlay: data };
+              await supabase.from('translations')
+                .update({ translated_text: newText })
+                .eq('id', overlayDoc.translation.id);
+              // Local state'i de güncelle
+              setDocuments(prev => prev.map(d =>
+                d.id === overlayDoc.id
+                  ? { ...d, translation: { ...d.translation!, translated_text: newText } }
+                  : d
+              ));
+              setOverlayDoc(prev => prev ? { ...prev, translation: { ...prev.translation!, translated_text: newText } } : null);
+              toast.success('PDF çevirisi kalıcı olarak kaydedildi');
+            }}
+            onClose={() => { setOverlayDoc(null); setOverlayUrl(''); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Özet Modal ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {summaryDoc && (
+          <motion.div
+            className={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setSummaryDoc(null); summaryAbortRef.current?.abort(); }}
+          >
+            <motion.div
+              className={styles.modal}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{ maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
+            >
+              <div className={styles.modalHeader}>
+                <div>
+                  <h2 className={styles.modalTitle}>{summaryDoc.original_name}</h2>
+                  <p className={styles.modalSub}>Yapay Zeka Özeti</p>
+                </div>
+                <button
+                  className={styles.modalClose}
+                  onClick={() => { setSummaryDoc(null); summaryAbortRef.current?.abort(); }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className={`${styles.modalBody} markdown-body`} style={{ flex: 1, overflowY: 'auto' }}>
+                {summaryLoading && !summaryText && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text-tertiary)', padding: '20px 0' }}>
+                    <Loader size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
+                    <span>Özet oluşturuluyor…</span>
+                  </div>
+                )}
+                {summaryText && (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm as any, remarkMath as any]}
+                    rehypePlugins={[rehypeKatex as any]}
+                  >
+                    {summaryText}
+                  </ReactMarkdown>
+                )}
+                {summaryLoading && summaryText && (
+                  <span style={{ display: 'inline-block', width: 2, height: 14, background: 'var(--color-text-secondary)', marginLeft: 3, verticalAlign: 'middle', borderRadius: 1, animation: 'pulse 1s ease-in-out infinite' }} />
+                )}
               </div>
             </motion.div>
           </motion.div>

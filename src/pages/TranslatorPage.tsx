@@ -13,13 +13,14 @@ import { exportMarkdownToPDF } from '../lib/exporters';
 import { SPRING_TIGHT } from '../components/ui/motion';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { translatePDFSmart, detectLanguage } from '../lib/ai';
+import { detectLanguage } from '../lib/ai';
+import { buildOverlayFromPDF, overlayToMarkdown } from '../lib/pdfOverlayBuilder';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set up PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import { SUPPORTED_LANGUAGES, TARGET_LANGUAGE } from '../lib/constants';
-import type { TranslationStep } from '../types';
+import type { TranslationStep, OverlayData } from '../types';
 import styles from '../styles/components/translator.module.css';
 
 export default function TranslatorPage() {
@@ -98,85 +99,90 @@ export default function TranslatorPage() {
       // Adım 3: Metin çıkar — sayfa sayısını ve metin yoğunluğunu ölç
       setStatusText('PDF analiz ediliyor'); setDetailText('Sayfa yapısı inceleniyor...'); setProgress(20);
 
-      let extractedText = '';
+      // Adım 3: Sayfa sayısı + örnek metin (dil tespiti için)
       let pageCount = 0;
+      let sampleText = '';
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         pageCount = pdf.numPages;
-        let fullText = '';
 
-        for (let i = 1; i <= pdf.numPages; i++) {
+        // Sadece ilk 2 sayfadan örnek al (dil tespiti için yeterli)
+        for (let i = 1; i <= Math.min(2, pdf.numPages); i++) {
           const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          // Metin öğelerini aralarına boşluk bırakarak birleştir
-          const pageText = textContent.items
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((item: any) => ('str' in item ? item.str : ''))
-            .join(' ');
-          fullText += pageText + '\n\n';
-          setProgress(20 + Math.round((i / pdf.numPages) * 10));
+          const tc = await page.getTextContent();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          sampleText += tc.items.map((it: any) => ('str' in it ? it.str : '')).join(' ') + ' ';
+          if (sampleText.length > 1500) break;
         }
-        extractedText = fullText.trim();
+        setProgress(28);
       } catch (pdfErr) {
         throw new Error('PDF okunamadı: ' + (pdfErr instanceof Error ? pdfErr.message : 'Bilinmeyen hata'));
       }
 
-      // Adım 4: Dil tespiti (metin yok ya da az ise multimodal mod kullanılacak)
-      const avgCharsPerPage = pageCount > 0 ? extractedText.length / pageCount : 0;
-      const isImageHeavy = avgCharsPerPage < 80;
-
+      // Adım 4: Dil tespiti
       let detectedLang = sourceLang;
       if (sourceLang === 'auto') {
         setStatusText('Dil tespit ediliyor'); setProgress(33);
-        const sampleText = extractedText.slice(0, 1000);
-        detectedLang = sampleText.length > 20
-          ? await detectLanguage(sampleText)
-          : 'en'; // metin yoksa varsayılan
+        detectedLang = sampleText.trim().length > 20
+          ? await detectLanguage(sampleText.slice(0, 800))
+          : 'en';
         setDetailText(`Tespit edilen dil: ${detectedLang.toUpperCase()}`);
       }
 
-      // Sayfa sayısını güncelle
       await supabase.from('documents').update({ page_count: pageCount }).eq('id', docId);
 
-      // Adım 5: Akıllı çeviri modu seç
-      if (isImageHeavy) {
-        setStatusText('Multimodal çeviri');
-        setDetailText('Taranmış/görsel PDF — AI doğrudan okuyor...');
-      } else {
-        setStatusText('Çevriliyor');
-        setDetailText(`${pageCount} sayfa işleniyor...`);
-      }
-      setProgress(40);
+      // Adım 5: PDF overlay üret — orijinal görsellerle birlikte çeviri
+      setStatusText('Sayfalar işleniyor');
+      setDetailText(`${pageCount} sayfa için PDF üzerine çeviri hazırlanıyor...`);
+      setProgress(35);
 
-      const { result: translated } = await translatePDFSmart(
-        file,
-        extractedText,
-        pageCount,
-        {
-          sourceLang: detectedLang,
-          targetLang: TARGET_LANGUAGE.code,
-          onProgress: ({ chunk, totalChunks, pct }) => {
-            setProgress(40 + Math.round((pct / 100) * 48));
-            if (!isImageHeavy) {
-              setDetailText(`${chunk}/${totalChunks} bölüm tamamlandı`);
-            }
-          },
+      const { pages: overlayPages } = await buildOverlayFromPDF(file, {
+        sourceLang: detectedLang,
+        targetLang: TARGET_LANGUAGE.code,
+        onProgress: (info) => {
+          if (info.phase === 'translating') {
+            const pct = 35 + Math.round((info.current / info.total) * 55);
+            setProgress(pct);
+            setStatusText('Çevriliyor');
+            const eta = info.estimatedSecondsLeft
+              ? ` • ~${info.estimatedSecondsLeft} sn kaldı`
+              : '';
+            setDetailText(`${info.current}/${info.total} sayfa${eta}`);
+          } else if (info.phase === 'loading') {
+            setStatusText('PDF yükleniyor');
+            setDetailText(info.message);
+          }
         },
-      );
-      setProgress(90);
+      });
 
-      // Adım 6: Çeviri kaydı oluştur — tüm metin tek alanda Markdown
-      setStatusText('Sonuç kaydediliyor'); setProgress(95);
-      // Kredi maliyeti = sayfa sayısı (en az 1)
+      setProgress(92);
+      setStatusText('Kaydediliyor');
+      setDetailText('Çeviri Supabase\'e kaydediliyor...');
+
+      // Overlay verisi + markdown (geri uyumluluk için)
+      const overlayData: OverlayData = {
+        version: 1,
+        sourceLang: detectedLang,
+        targetLang: TARGET_LANGUAGE.code,
+        pages: overlayPages,
+      };
+      const markdownText = overlayToMarkdown(overlayPages);
+
+      // Adım 6: Çeviri kaydı oluştur (overlay + markdown birlikte)
       const creditsCost = Math.max(1, pageCount);
       await supabase.from('translations').insert({
         document_id: docId, user_id: profile.id,
         target_language: TARGET_LANGUAGE.code,
-        translated_text: { pages: [translated], pageCount },
+        translated_text: {
+          pages: [markdownText],
+          overlay: overlayData,
+        },
         progress: 100, status: 'completed',
         credits_used: creditsCost,
       });
+
+      const translated = markdownText;
 
       // Adım 7: Dokümanı güncelle ve krediyi düş (sayfa başına 1 kredi)
       await supabase.from('documents').update({ status: 'completed', original_language: detectedLang }).eq('id', docId);

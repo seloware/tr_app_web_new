@@ -18,11 +18,23 @@ const AI_API_URL = (import.meta.env.VITE_AI_API_URL as string | undefined) || ''
 // Streaming URL: :generateContent → :streamGenerateContent
 const STREAM_URL = AI_API_URL.replace(':generateContent', ':streamGenerateContent');
 
+// Pro model URL — çeviri kalitesi için kullanılır
+// VITE_AI_PRO_API_URL yoksa flash-lite → pro değiştirilerek türetilir
+const AI_PRO_API_URL =
+  (import.meta.env.VITE_AI_PRO_API_URL as string | undefined) ||
+  AI_API_URL
+    .replace('flash-lite-preview', 'pro-preview')
+    .replace('flash-lite:', 'pro:')
+    .replace('-flash-lite', '-pro');
+
 // Multimodal için boyut sınırı: 15 MB altı PDF'ler doğrudan Gemini'ye gönderilir
 const MULTIMODAL_PDF_LIMIT = 15 * 1024 * 1024; // 15 MB
 
 // Metin çıkarma yoğunluğu eşiği: sayfa başına ortalama bu karakterden azsa "görsel ağırlıklı"
 const TEXT_DENSITY_THRESHOLD = 80; // karakter / sayfa
+
+// Görsel modda işlenecek maksimum sayfa (üstü metin moduna düşer)
+const MAX_VISUAL_PAGES = 40;
 
 // ─── Tipler ─────────────────────────────────────────────────────────────────
 export type AIMessageRole = 'user' | 'model';
@@ -70,8 +82,11 @@ async function callGemini({
   systemInstruction,
   temperature = 0.25,
   maxOutputTokens = 16384,
-}: CallOpts): Promise<string> {
+  _useProModel = false,
+}: CallOpts & { _useProModel?: boolean }): Promise<string> {
   if (!isAIAvailable()) return demoResponse(contents);
+
+  const apiUrl = _useProModel ? AI_PRO_API_URL : AI_API_URL;
 
   const body: Record<string, unknown> = {
     contents,
@@ -81,7 +96,7 @@ async function callGemini({
     body.systemInstruction = { parts: [{ text: systemInstruction }] };
   }
 
-  const res = await fetch(`${AI_API_URL}?key=${AI_API_KEY}`, {
+  const res = await fetch(`${apiUrl}?key=${AI_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -428,6 +443,75 @@ export async function translateLongText(text: string, opts: TranslateOpts): Prom
   return results.join('\n\n');
 }
 
+// ─── 2b) Görsel (sayfa-görüntü) tabanlı çeviri ──────────────────────────────
+
+/**
+ * Her PDF sayfasını JPEG görüntüsü olarak Gemini Pro'ya gönderir.
+ * Grafikler, formüller ve özel semboller görsel olarak korunur.
+ * pageDataURLs: pdfRenderer.renderPageToDataURL ile üretilen data URL'ler (JPEG).
+ * MAX_VISUAL_PAGES aşılırsa metin moduna düşülmesi için caller yönetir.
+ */
+export async function translatePDFByPages(
+  pageDataURLs: string[],
+  opts: TranslateOpts,
+): Promise<string[]> {
+  const { sourceLang, targetLang = 'tr', onProgress, signal } = opts;
+  const total = pageDataURLs.length;
+  const results: string[] = new Array(total);
+  let completed = 0;
+
+  const systemPrompt = buildTranslationSystemPrompt(sourceLang, targetLang);
+
+  const userPromptTemplate = (lang: string) =>
+    `Bu PDF sayfasındaki TÜM metni ${lang === 'tr' ? 'Türkçeye' : lang + ' diline'} çevir.\n` +
+    `• Matematiksel formüller: LaTeX notasyonuyla koru ($ ... $ veya $$ ... $$)\n` +
+    `• Tablolar: Markdown tablosu formatında koru\n` +
+    `• Başlık hiyerarşisini # ## ### ile koru\n` +
+    `• Grafik, diyagram veya şekil varsa "[Şekil: kısa açıklama]" etiketi bırak\n` +
+    `• Sadece çevirilmiş Markdown çıktısı ver, başka yorum ekleme`;
+
+  async function translatePage(index: number) {
+    if (signal?.aborted) throw new Error('Çeviri iptal edildi.');
+    const dataURL = pageDataURLs[index];
+    const [header, b64] = dataURL.split(',');
+    const mimeType = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+
+    const result = await callGemini({
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType, data: b64 } },
+          { text: userPromptTemplate(targetLang) },
+        ],
+      }],
+      systemInstruction: systemPrompt,
+      temperature: 0.15,
+      maxOutputTokens: 8192,
+      _useProModel: true,
+    });
+
+    results[index] = result;
+    completed++;
+    onProgress?.({ chunk: completed, totalChunks: total, pct: Math.round((completed / total) * 100) });
+  }
+
+  // 4 paralel worker
+  const queue = pageDataURLs.map((_, i) => i);
+  const poolWorker = async () => {
+    while (queue.length) {
+      const i = queue.shift()!;
+      await translatePage(i);
+    }
+  };
+  const pool: Promise<void>[] = [];
+  for (let k = 0; k < Math.min(CONCURRENCY, total); k++) pool.push(poolWorker());
+  await Promise.all(pool);
+
+  return results;
+}
+
+export { MAX_VISUAL_PAGES };
+
 /** Geriye dönük uyumluluk */
 export async function translateDocument(
   text: string,
@@ -562,6 +646,191 @@ Kesin kurallar:
     systemInstruction: systemPrompt,
     maxOutputTokens: 8192,
   });
+}
+
+// ─── 7) Sayfa metin bloklarını konumlu olarak çevir ─────────────────────────
+
+/**
+ * Bir PDF sayfasındaki metin bloklarını sıralı olarak çevirir.
+ * Bloklar numaralı liste olarak gönderilir, aynı sırada çeviri alınır.
+ * Formüller, semboller ve sayılar aynen korunur.
+ * Tek API çağrısıyla tüm sayfa işlenir (verimli + bağlam korunur).
+ */
+export async function translateTextBlocks(
+  blocks: string[],
+  sourceLang: string,
+  targetLang = 'tr',
+  signal?: AbortSignal,
+): Promise<string[]> {
+  if (blocks.length === 0) return [];
+
+  // 60'tan fazla blok varsa gruplara böl
+  const BATCH = 60;
+  if (blocks.length > BATCH) {
+    const results: string[] = [];
+    for (let i = 0; i < blocks.length; i += BATCH) {
+      const batch = blocks.slice(i, i + BATCH);
+      const translated = await translateTextBlocks(batch, sourceLang, targetLang, signal);
+      results.push(...translated);
+    }
+    return results;
+  }
+
+  const targetName = targetLang === 'tr' ? 'Türkçe' : targetLang;
+  const numbered = blocks.map((b, i) => `${i + 1}. ${b}`).join('\n');
+
+  const result = await callGemini({
+    contents: [{
+      role: 'user',
+      parts: [{ text: `${blocks.length} metin bloğunu ${targetName} diline çevir.\nKurallar:\n- Aynı numarayla, aynı sırayla döndür\n- Matematiksel formüller, özel semboller, sayılar ve kısaltmalar değiştirilmez\n- Sadece numaralı liste yaz, açıklama veya ek yorum ekleme\n\n${numbered}` }],
+    }],
+    temperature: 0.05,
+    maxOutputTokens: 8192,
+  });
+
+  // Numaralı çıktıyı parse et
+  const out = new Array(blocks.length).fill('');
+  for (const line of result.split('\n')) {
+    const m = line.match(/^(\d+)\.\s*(.+)/);
+    if (m) {
+      const idx = parseInt(m[1]) - 1;
+      if (idx >= 0 && idx < blocks.length) out[idx] = m[2].trim();
+    }
+  }
+
+  // Çevirisi alınamayan blokları orijinal metinle doldur
+  return out.map((t, i) => t || blocks[i]);
+}
+
+// ─── 7b) Sayfa görüntüsü + metin blokları → tüm çeviri (text + visual) ─────
+
+export interface PageVisionTranslation {
+  /** PDF.js'ten çıkan blokların çevirisi (aynı sırada) */
+  textTranslations: string[];
+  /** Grafik/şekil İÇİNDE tespit edilen yeni metinler */
+  visualBlocks: Array<{
+    x: number; y: number; w: number; h: number;
+    fontSize: number; original: string; translated: string;
+  }>;
+}
+
+/**
+ * Sayfanın hem metnini hem GÖRSEL İÇİ yazılarını (grafik etiketleri, eksen yazıları)
+ * tek API çağrısıyla çevirir. PDF.js'ten gelen metin bloklarına ek olarak
+ * Gemini görüntüden ek metin tespit ederse onları da pozisyon bilgisiyle döner.
+ */
+export async function translatePageWithVision(
+  pageImageDataURL: string,
+  textBlocks: Array<{ text: string; x: number; y: number; w: number; h: number; fontSize: number }>,
+  sourceLang: string,
+  targetLang = 'tr',
+  signal?: AbortSignal,
+): Promise<PageVisionTranslation> {
+  const [header, b64] = pageImageDataURL.split(',');
+  const mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const targetName = targetLang === 'tr' ? 'Türkçe' : targetLang;
+
+  const numbered = textBlocks.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
+
+  const prompt =
+    `Bu PDF sayfasını analiz et. ${sourceLang} dilinden ${targetName} diline çevir.\n\n` +
+    `GÖREV 1: Aşağıdaki ${textBlocks.length} numaralı metin bloğunu çevir.\n` +
+    `GÖREV 2: Sayfa görüntüsünde GRAFİK/ŞEKİL/DİYAGRAM İÇİNDEKİ metinleri (eksen etiketleri, başlıklar, legend, vb.) tespit et ve çevir.\n\n` +
+    `ÇIKARILAN METİNLER:\n${numbered || '(metin yok)'}\n\n` +
+    `YANIT FORMATI (KESİNLİKLE bu format — başka hiçbir şey yazma):\n` +
+    `=== TEXT ===\n` +
+    `1. <çeviri>\n` +
+    `2. <çeviri>\n` +
+    `...\n\n` +
+    `=== VISUAL ===\n` +
+    `x:<0-1> y:<0-1> w:<0-1> h:<0-1> fs:<sayı> | <orijinal> | <çeviri>\n` +
+    `...\n\n` +
+    `KURALLAR:\n` +
+    `- Formüller, semboller, sayılar değiştirilmez (LaTeX/Unicode aynı kalır)\n` +
+    `- Görsel metin yoksa VISUAL bölümünü boş bırak\n` +
+    `- Pozisyonlar 0-1 arası oran (sol-üst köşe = 0,0; sağ-alt = 1,1)\n` +
+    `- fs = font boyutu pts cinsinden (yaklaşık)\n` +
+    `- Kısaltmalar, özel isimler ve marka adları olduğu gibi bırakılır`;
+
+  const result = await callGemini({
+    contents: [{
+      role: 'user',
+      parts: [
+        { inlineData: { mimeType, data: b64 } },
+        { text: prompt },
+      ],
+    }],
+    temperature: 0.05,
+    maxOutputTokens: 8192,
+  });
+
+  if (signal?.aborted) throw new Error('İptal edildi');
+
+  // ── Parse TEXT bölümü ─────────────────────────────────────────────────────
+  const textMatch = result.match(/=== TEXT ===\s*([\s\S]*?)(?:=== VISUAL ===|$)/);
+  const textTranslations = new Array(textBlocks.length).fill('');
+  if (textMatch) {
+    for (const line of textMatch[1].split('\n')) {
+      const m = line.match(/^\s*(\d+)\.\s*(.+)/);
+      if (m) {
+        const idx = parseInt(m[1]) - 1;
+        if (idx >= 0 && idx < textBlocks.length) {
+          textTranslations[idx] = m[2].trim();
+        }
+      }
+    }
+  }
+  const finalText = textTranslations.map((t, i) => t || textBlocks[i].text);
+
+  // ── Parse VISUAL bölümü ───────────────────────────────────────────────────
+  const visualBlocks: PageVisionTranslation['visualBlocks'] = [];
+  const visualMatch = result.match(/=== VISUAL ===\s*([\s\S]*?)$/);
+  if (visualMatch) {
+    for (const line of visualMatch[1].split('\n')) {
+      const m = line.match(/x:\s*([\d.]+)\s+y:\s*([\d.]+)\s+w:\s*([\d.]+)\s+h:\s*([\d.]+)\s+fs:\s*([\d.]+)\s*\|\s*([^|]+?)\s*\|\s*(.+)/);
+      if (m) {
+        const x = parseFloat(m[1]), y = parseFloat(m[2]), w = parseFloat(m[3]), h = parseFloat(m[4]);
+        if (x >= 0 && x <= 1 && y >= 0 && y <= 1 && w > 0 && w <= 1) {
+          visualBlocks.push({
+            x, y, w: Math.min(w, 1 - x), h: Math.max(h, 0.012),
+            fontSize: parseFloat(m[5]) || 10,
+            original: m[6].trim(),
+            translated: m[7].trim(),
+          });
+        }
+      }
+    }
+  }
+
+  return { textTranslations: finalText, visualBlocks };
+}
+
+/**
+ * Belgeyi özetle — kısa, madde madde Türkçe özet üretir.
+ */
+export async function summarizeDocument(
+  text: string,
+  signal?: AbortSignal,
+  onChunk?: (delta: string, full: string) => void,
+): Promise<string> {
+  const truncated = text.slice(0, 48_000);
+  const systemPrompt =
+    `Sen bir akademik özet asistanısın. Verilen belgeyi:
+• 6-10 maddeli, net ve bilgilendirici Türkçe özetle
+• Her madde tek cümle veya kısa paragraf olsun
+• Önemli kavramlar, bulgular ve sonuçlara odaklan
+• Başlık ekle: ## Özet
+• Markdown kullan ama gereksiz iç içe başlık yapma`;
+
+  const contents: AIMessage[] = [{
+    role: 'user',
+    parts: [{ text: `Şu belgeyi özetle:\n\n${truncated}` }],
+  }];
+
+  if (onChunk) {
+    return streamGemini({ contents, systemInstruction: systemPrompt, maxOutputTokens: 2048, onChunk, signal });
+  }
+  return callGemini({ contents, systemInstruction: systemPrompt, maxOutputTokens: 2048 });
 }
 
 // ─── 6) Ders Notu Üretimi (multimodal, öğrenci odaklı) ──────────────────────

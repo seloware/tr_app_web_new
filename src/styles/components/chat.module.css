@@ -1,37 +1,92 @@
-/* ========================================================================
-   TransLingua — Chat Page
-   ======================================================================== */
+/* ============================================================
+   TransLingua — Chat Page (v4 — Split-Pane redesign)
+   ============================================================ */
 
-/* ── Sayfa ─────────────────────────────────────────────────────────────── */
-.chatPage {
-  width: min(900px, calc(100% - 32px));
+/* ── Yükleme ────────────────────────────────────────────────── */
+.loadingPage {
+  width: 100%;
   height: calc(100vh - var(--navbar-height));
-  margin: 0 auto;
-  padding: calc(var(--navbar-height) + 20px) 0 0;
+  margin-top: var(--navbar-height);
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ── Başlık ─────────────────────────────────────────────────────────────── */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Ana layout: grid ───────────────────────────────────────── */
+.chatLayout {
+  width: 100%;
+  height: calc(100dvh - var(--navbar-height));
+  margin-top: var(--navbar-height);
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  background: var(--color-bg);
+  transition: grid-template-columns 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* PDF paneli açıkken */
+.chatLayoutWithPDF {
+  grid-template-columns: 1fr 400px;
+}
+
+/* PDF paneli genişletilmiş */
+.chatLayoutExpanded {
+  grid-template-columns: 1fr 560px;
+}
+
+/* ── Chat paneli ────────────────────────────────────────────── */
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
 .chatHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 14px;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
+  flex: 1;
+}
+
+.headerLogo {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--color-accent);
+  color: white;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
 
 .chatTitle {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
@@ -43,73 +98,75 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 10px;
+  padding: 2px 9px;
   background: var(--color-accent-light);
   border: 1px solid var(--color-accent-medium);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--color-accent);
-  max-width: 240px;
+  max-width: 200px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
+.docChip span { overflow: hidden; text-overflow: ellipsis; }
 
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-/* Yeni konuşma butonu */
-.newBtn {
+/* Header butonları */
+.headerBtn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 34px;
-  padding: 0 13px;
+  height: 32px;
+  padding: 0 11px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 9px;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--color-text-secondary);
   cursor: pointer;
   box-shadow: var(--shadow-xs);
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+  white-space: nowrap;
 }
-.newBtn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
-.newBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.headerBtn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.headerBtn:disabled { opacity: 0.38; cursor: not-allowed; }
+.headerBtnActive {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-medium);
+  color: var(--color-accent);
+}
 
-/* ── Doküman seçici ─────────────────────────────────────────────────────── */
+/* ── Doküman seçici ─────────────────────────────────────────── */
 .docPickerWrapper { position: relative; }
 
 .docPickerBtn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 13px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 9px;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--color-text-primary);
   cursor: pointer;
-  max-width: 220px;
+  max-width: 200px;
   box-shadow: var(--shadow-xs);
-  transition: border-color 0.15s;
+  transition: border-color 0.14s;
 }
-.docPickerBtn span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.docPickerBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .docPickerBtn:hover { border-color: var(--color-border-strong); }
 
 .docPickerDropdown {
@@ -117,8 +174,10 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 50;
-  width: 280px;
-  padding: 6px;
+  width: 290px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 5px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -127,13 +186,13 @@
 
 .docPickerItem {
   width: 100%;
-  min-height: 38px;
+  min-height: 36px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 10px;
+  gap: 8px;
+  padding: 0 9px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: var(--color-text-secondary);
   font: inherit;
@@ -141,110 +200,171 @@
   font-weight: 650;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.1s, color 0.1s;
 }
 .docPickerItem:hover { background: var(--color-accent-light); color: var(--color-accent); }
 .docPickerItemActive { background: var(--color-accent-light); color: var(--color-accent); }
 .docPickerItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.docPickerEmpty { padding: 12px 10px; color: var(--color-text-tertiary); font-size: 0.82rem; }
+.docPickerEmpty { padding: 11px 9px; color: var(--color-text-tertiary); font-size: 0.82rem; }
 .docPickerEmpty a { color: var(--color-accent); font-weight: 700; text-decoration: none; }
 
-/* ── Sohbet gövdesi ─────────────────────────────────────────────────────── */
+/* ── Chat body (mesaj alanı) ────────────────────────────────── */
 .chatBody {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  border-radius: 20px;
-  border: 1px solid var(--color-border);
+  gap: 20px;
+  padding: 24px 20px;
   background:
-    radial-gradient(ellipse at 20% 0%, rgba(0, 87, 255, 0.04), transparent 50%),
+    radial-gradient(ellipse at 15% 0%, rgba(0, 87, 255, 0.035), transparent 55%),
     var(--color-bg-alt);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-strong) transparent;
 }
 .chatBody::-webkit-scrollbar { width: 4px; }
-.chatBody::-webkit-scrollbar-track { background: transparent; }
 .chatBody::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 99px; }
 
-/* ── Mesajlar ───────────────────────────────────────────────────────────── */
+/* ── Boş durum ──────────────────────────────────────────────── */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 40px 20px;
+}
+
+.emptyIcon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent-medium);
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  box-shadow: 0 8px 28px rgba(0, 87, 255, 0.12);
+  margin-bottom: 8px;
+}
+
+.emptyTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  font-family: var(--font-heading);
+}
+
+.emptyHint {
+  max-width: 360px;
+  color: var(--color-text-tertiary);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Quick prompts */
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  max-width: 500px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.quickBtn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.14s, color 0.14s, background 0.14s, transform 0.12s;
+}
+.quickBtn:hover {
+  border-color: var(--color-accent-medium);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.quickBtnIcon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent-light);
+  border-radius: 8px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+  transition: background 0.14s;
+}
+.quickBtn:hover .quickBtnIcon { background: var(--color-accent-medium); }
+
+/* ── Mesajlar ───────────────────────────────────────────────── */
 .msgRow {
   display: flex;
   gap: 10px;
-  max-width: min(740px, 90%);
+  max-width: min(760px, 92%);
   align-self: flex-start;
 }
 
-.msgUser {
+.msgRowUser {
   align-self: flex-end;
   flex-direction: row-reverse;
-  max-width: 70%;
+  max-width: min(640px, 80%);
 }
 
 /* Avatar */
-.msgAvatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   font-weight: 900;
-  margin-top: 3px;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
 }
-.msgAvatarUser {
+.avatarUser {
   background: var(--color-accent);
   color: white;
 }
-.msgAvatarAi {
+.avatarAI {
   background: var(--color-surface);
   color: var(--color-accent);
   border: 1px solid var(--color-accent-medium);
   box-shadow: var(--shadow-xs);
 }
 
-/* Bubble wrapper */
-.msgWrap {
+.msgGroup {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+  flex: 1;
 }
-
-/* Balonlar */
-.msgBubble {
-  padding: 11px 15px;
-  border-radius: 16px;
-  font-size: 0.89rem;
-  line-height: 1.65;
-  word-break: break-word;
-}
-.msgBubbleUser {
-  background: var(--color-accent);
-  color: white;
-  border-bottom-right-radius: 4px;
-}
-.msgBubbleAi {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-bottom-left-radius: 4px;
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-xs);
-}
-
-.msgTime {
-  font-size: 0.67rem;
-  color: var(--color-text-tertiary);
-  padding: 0 2px;
-}
-.msgTimeRight { text-align: right; }
 
 /* Ekler */
-.attachRow { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
+.attachRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 4px;
+}
 .attachTag {
   display: inline-flex;
   align-items: center;
@@ -252,9 +372,69 @@
   font-size: 0.69rem;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  color: inherit;
+  background: rgba(0, 87, 255, 0.09);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-medium);
 }
+
+/* Balonlar */
+.bubble {
+  padding: 12px 16px;
+  border-radius: 18px;
+  word-break: break-word;
+  line-height: 1.65;
+}
+
+.bubbleUser {
+  background: var(--color-accent);
+  color: white;
+  border-bottom-right-radius: 5px;
+  font-size: 0.9rem;
+}
+
+.bubbleAI {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 5px;
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-xs);
+  font-size: 0.88rem;
+}
+
+.userText {
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
+
+/* Mesaj alt satırı: zaman + kopyala */
+.msgMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+.msgMetaRight { justify-content: flex-end; }
+
+.msgTime {
+  font-size: 0.66rem;
+  color: var(--color-text-tertiary);
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  padding: 0;
+}
+.copyBtn:hover { color: var(--color-accent); border-color: var(--color-accent-medium); background: var(--color-accent-light); }
 
 /* Streaming cursor */
 .cursor {
@@ -263,28 +443,85 @@
   height: 14px;
   background: var(--color-text-secondary);
   vertical-align: middle;
-  margin-left: 3px;
+  margin-left: 2px;
   border-radius: 1px;
 }
 
-/* ── Typing dots ────────────────────────────────────────────────────────── */
-.typing { display: flex; gap: 5px; padding: 3px 0; align-items: center; }
-.typingDot {
+/* Typing dots */
+.typingDots {
+  display: inline-flex;
+  gap: 5px;
+  padding: 4px 2px;
+  align-items: center;
+}
+.typingDots span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--color-border-strong);
+  display: block;
 }
-.typingDot:nth-child(1) { animation: typingBounce 1.2s ease-in-out infinite 0s; }
-.typingDot:nth-child(2) { animation: typingBounce 1.2s ease-in-out infinite 0.15s; }
-.typingDot:nth-child(3) { animation: typingBounce 1.2s ease-in-out infinite 0.3s; }
+.typingDots span:nth-child(1) { animation: bounce 1.2s ease-in-out infinite 0s; }
+.typingDots span:nth-child(2) { animation: bounce 1.2s ease-in-out infinite 0.16s; }
+.typingDots span:nth-child(3) { animation: bounce 1.2s ease-in-out infinite 0.32s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
 
-/* ── Bekleyen dosyalar ──────────────────────────────────────────────────── */
-.pendingFiles {
+/* Markdown içi kod blokları */
+.pre {
+  background: #0f1117;
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.codeBlock {
+  color: #e2e8f0;
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+.codeInline {
+  background: rgba(0, 87, 255, 0.07);
+  color: var(--color-accent);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.82em;
+}
+
+/* Markdown tablo */
+.tableWrap { overflow-x: auto; margin: 8px 0; }
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.84rem;
+}
+.table :global(th),
+.table :global(td) {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.table :global(th) { background: var(--color-accent-light); font-weight: 700; }
+
+/* Markdown alıntı */
+.blockquote {
+  border-left: 3px solid var(--color-accent-medium);
+  padding: 4px 12px;
+  margin: 8px 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ── Bekleyen dosyalar şeridi ────────────────────────────────── */
+.pendingStrip {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 8px 4px;
+  padding: 8px 20px 0;
   overflow: hidden;
 }
 .pendingTag {
@@ -295,7 +532,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-xs);
 }
@@ -311,26 +548,31 @@
 }
 .pendingRemove:hover { color: var(--color-error); }
 
-/* ── Giriş alanı ────────────────────────────────────────────────────────── */
-.inputWrap {
+/* ── Input alanı ────────────────────────────────────────────── */
+.inputArea {
+  flex-shrink: 0;
+  padding: 12px 16px 16px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.inputRow {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  margin-top: 10px;
-  margin-bottom: 16px;
-  padding: 10px 12px;
-  background: var(--color-surface);
+  padding: 8px 10px;
+  background: var(--color-bg-alt);
   border: 1.5px solid var(--color-border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 16px;
+  box-shadow: var(--shadow-xs);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.inputWrap:focus-within {
-  border-color: rgba(0, 87, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(0, 87, 255, 0.06), var(--shadow-sm);
+.inputRow:focus-within {
+  border-color: rgba(0, 87, 255, 0.38);
+  box-shadow: 0 0 0 3px rgba(0, 87, 255, 0.06), var(--shadow-xs);
 }
 
-.attachBtn {
+.iconBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -342,24 +584,29 @@
   cursor: pointer;
   color: var(--color-text-tertiary);
   flex-shrink: 0;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.attachBtn:hover { color: var(--color-accent); border-color: var(--color-accent-medium); }
-.attachBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+.iconBtn:hover { color: var(--color-accent); border-color: var(--color-accent-medium); background: var(--color-accent-light); }
+.iconBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+.iconBtnActive {
+  color: var(--color-accent);
+  border-color: var(--color-accent-medium);
+  background: var(--color-accent-light);
+}
 
 .inputField {
   flex: 1;
   min-height: 22px;
-  max-height: 130px;
-  padding: 6px 4px;
+  max-height: 160px;
+  padding: 5px 4px;
   border: 0;
   outline: 0;
   resize: none;
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-size: 0.91rem;
+  line-height: 1.6;
   align-self: center;
 }
 .inputField::placeholder { color: var(--color-text-tertiary); }
@@ -376,121 +623,216 @@
   color: white;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, transform 0.15s, opacity 0.15s;
-  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 87, 255, 0.28);
+  transition: background 0.14s, transform 0.14s, opacity 0.14s;
 }
 .sendBtn:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
-.sendBtn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; transform: none; }
-
+.sendBtn:disabled { opacity: 0.28; cursor: not-allowed; box-shadow: none; }
 .sendBtnStop { background: var(--color-error); box-shadow: 0 4px 14px rgba(255, 59, 48, 0.25); }
 .sendBtnStop:hover:not(:disabled) { background: #dc2626; }
 
-/* ── Boş durum ──────────────────────────────────────────────────────────── */
-.emptyChat {
+.pageIncludedBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-medium);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--color-accent);
+  width: fit-content;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PDF PANEL
+   ══════════════════════════════════════════════════════════════ */
+.pdfPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-alt);
+  border-left: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.pdfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.pdfHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pdfTitle {
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pdfHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pdfIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: color 0.12s, border-color 0.12s;
+  padding: 0;
+}
+.pdfIconBtn:hover { color: var(--color-text-primary); border-color: var(--color-border-strong); }
+
+.pdfCanvas {
   flex: 1;
-  min-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.pdfPageImg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  display: block;
+}
+
+.pdfLoading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  gap: 6px;
-}
-
-.emptyChatIcon {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-accent-medium);
-  display: grid;
-  place-items: center;
-  color: var(--color-accent);
-  box-shadow: 0 8px 28px rgba(0, 87, 255, 0.1);
-  margin-bottom: 6px;
-}
-
-.emptyChatText {
-  font-size: 1rem;
-  font-weight: 750;
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-  font-family: var(--font-heading);
-}
-
-.emptyChatHint {
-  max-width: 360px;
+  gap: 10px;
+  padding: 40px 0;
   color: var(--color-text-tertiary);
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.84rem;
 }
 
-/* Quick prompts */
-.quickGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 7px;
-  max-width: 480px;
-  width: 100%;
-  margin-top: 18px;
-}
-
-.quickBtn {
+.pdfNav {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 10px;
   padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 650;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  text-align: left;
-  box-shadow: var(--shadow-xs);
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-.quickBtn:hover {
-  border-color: rgba(0, 87, 255, 0.28);
-  color: var(--color-accent);
-  background: var(--color-accent-light);
+  flex-shrink: 0;
 }
 
-.quickBtnIcon {
-  width: 26px;
-  height: 26px;
+.pdfNavBtn {
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
-  background: var(--color-accent-light);
-  border-radius: 7px;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  padding: 0;
+}
+.pdfNavBtn:hover:not(:disabled) { color: var(--color-accent); border-color: var(--color-accent-medium); background: var(--color-accent-light); }
+.pdfNavBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.pdfPageInfo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  min-width: 60px;
+  text-align: center;
+}
+.pdfPageInfo span { color: var(--color-text-tertiary); font-weight: 400; margin: 0 2px; }
+
+.askPageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 14px;
+  padding: 9px 0;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+}
+.askPageBtn:hover {
+  border-color: var(--color-accent-medium);
   color: var(--color-accent);
-  flex-shrink: 0;
-  transition: background 0.15s;
+  background: var(--color-accent-light);
 }
-.quickBtn:hover .quickBtnIcon { background: var(--color-accent-medium); }
-
-/* ── Animasyonlar ───────────────────────────────────────────────────────── */
-@keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
-  30% { transform: translateY(-5px); opacity: 1; }
+.askPageBtnActive {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-medium);
+  color: var(--color-accent);
 }
 
-/* ── Mobil ──────────────────────────────────────────────────────────────── */
-@media (max-width: 720px) {
-  .chatPage {
-    width: calc(100% - 24px);
-    height: auto;
-    min-height: calc(100vh - 24px);
+.pdfHint {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+  padding: 8px 14px 14px;
+  line-height: 1.45;
+}
+
+/* ── Mobil ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .chatLayoutWithPDF,
+  .chatLayoutExpanded {
+    grid-template-columns: 1fr;
   }
-  .chatHeader { flex-wrap: wrap; gap: 10px; }
-  .docPickerBtn { max-width: 160px; }
-  .docPickerDropdown { left: 0; right: auto; width: 100%; }
-  .chatBody { padding: 14px; }
-  .msgRow { max-width: 96%; }
-  .msgUser { max-width: 88%; }
+
+  .pdfPanel {
+    position: fixed;
+    inset: var(--navbar-height) 0 0 0;
+    z-index: 40;
+    border-left: 0;
+  }
+
+  .chatHeader { padding: 12px 14px; }
+  .chatBody { padding: 16px 14px; }
+  .headerBtn span { display: none; }
+  .docPickerBtn { max-width: 140px; }
+  .docPickerDropdown { left: auto; right: 0; width: 260px; }
   .quickGrid { grid-template-columns: 1fr; }
-  .headerLeft { min-width: 0; overflow: hidden; }
+}
+
+@media (max-width: 480px) {
+  .msgRow { max-width: 96%; }
+  .msgRowUser { max-width: 88%; }
+  .chatTitle { font-size: 0.88rem; }
   .docChip { display: none; }
 }

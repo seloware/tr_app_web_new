@@ -1,0 +1,421 @@
+/* ============================================================
+   PDFOverlayViewer — Tam ekran modal PDF overlay görüntüleyici
+   ============================================================ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(10, 10, 20, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.32);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.toolbarLeft,
+.toolbarRight,
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbarCenter { flex: 1; justify-content: center; }
+
+.toolBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.13s, color 0.13s, background 0.13s;
+}
+.toolBtn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.toolBtnActive {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-medium);
+  color: var(--color-accent);
+}
+
+.toolBtnExport {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+  margin-left: 6px;
+}
+.toolBtnExport:hover:not(:disabled) { background: var(--color-accent-hover); }
+.toolBtnExport:disabled { opacity: 0.6; cursor: wait; }
+
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+.iconBtn:hover { color: var(--color-accent); border-color: var(--color-accent-medium); }
+
+.zoomLabel {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  min-width: 36px;
+  text-align: center;
+}
+
+.navBtn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.navBtn:hover:not(:disabled) { color: var(--color-accent); background: var(--color-accent-light); border-color: var(--color-accent-medium); }
+.navBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.pageInfo {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  min-width: 90px;
+  text-align: center;
+}
+.pageInfo strong { color: var(--color-text-primary); }
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  padding: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.closeBtn:hover { color: var(--color-error); background: rgba(255, 59, 48, 0.08); border-color: rgba(255, 59, 48, 0.3); }
+
+/* ── Sayfa alanı ─────────────────────────────────────────── */
+.pageArea {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 20px;
+  background: #1a1b2e;
+  scrollbar-width: thin;
+  scrollbar-color: #444 transparent;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.pageWrapper {
+  display: inline-block;
+  transform-origin: top center;
+  transition: transform 0.2s ease;
+}
+
+/* Sayfa container: padding-bottom trick ile aspect ratio korunur */
+.pageContainer {
+  position: relative;
+  width: 760px;
+  height: 0;
+  overflow: hidden;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Orijinal PDF sayfa görüntüsü — tam container'ı kaplar */
+.pageImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ── Çeviri metin blokları ───────────────────────────────── */
+.textBlock {
+  position: absolute;
+  background: rgba(255, 252, 235, 0.96); /* hafif sarı — orijinali örter, okunaklı */
+  color: #1a1a2e;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  padding: 0 2px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  border-radius: 1px;
+  outline: 0.5px solid rgba(200, 180, 100, 0.25);
+  pointer-events: auto;
+  box-sizing: border-box;
+  cursor: help;
+  transition: background 0.15s, outline-color 0.15s;
+}
+.textBlock:hover {
+  background: rgba(255, 245, 200, 1);
+  outline-color: rgba(180, 140, 50, 0.6);
+}
+
+/* Görsel içi tespit edilen yazı — farklı renk */
+.textBlockVisual {
+  background: rgba(230, 245, 255, 0.94);
+  outline-color: rgba(70, 130, 200, 0.35);
+}
+.textBlockVisual:hover {
+  background: rgba(210, 235, 255, 1);
+}
+
+/* ── Üretim paneli ──────────────────────────────────────── */
+.generatePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 60px 30px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.generateIcon {
+  color: var(--color-accent);
+}
+
+.generateTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.generateDesc {
+  font-size: 0.86rem;
+  color: var(--color-text-tertiary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.generateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 22px;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 87, 255, 0.28);
+  transition: transform 0.14s, background 0.14s;
+  margin-top: 6px;
+}
+.generateBtn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
+
+.progressBar {
+  width: 100%;
+  max-width: 360px;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover, var(--color-accent)));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progressLabel {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.cancelBtn {
+  margin-top: 4px;
+  padding: 7px 16px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.cancelBtn:hover { color: var(--color-error); border-color: var(--color-error); }
+
+.centeredOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 30px;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Yükleme göstergeleri ───────────────────────────────── */
+.centered {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-text-tertiary);
+  font-size: 0.84rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.translatingBadge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(0, 87, 255, 0.1);
+  border: 1px solid var(--color-accent-medium);
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  backdrop-filter: blur(4px);
+}
+
+.errorBadge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: var(--color-error);
+}
+
+.retryBtn {
+  background: var(--color-error);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.errorText {
+  color: var(--color-error);
+  font-size: 0.88rem;
+}
+
+/* ── Alt bilgi ──────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.footerNote {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}
+
+.blockCount {
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Animasyon ──────────────────────────────────────────── */
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Mobil ──────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .backdrop { padding: 0; }
+  .modal { border-radius: 0; max-width: 100%; }
+  .pageContainer { width: 100vw; }
+  .toolbar { gap: 4px; padding: 8px 10px; }
+  .toolbarLeft .toolBtn span { display: none; }
+}

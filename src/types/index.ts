@@ -53,7 +53,34 @@ export interface Translation {
 export type TranslationStatus = 'pending' | 'extracting' | 'translating' | 'generating' | 'completed' | 'error';
 
 export interface TranslatedText {
-  pages: string[];
+  pages: string[];           // Markdown çıktı (geriye uyumluluk + indirme için)
+  overlay?: OverlayData;     // PDF üzerine yazma için yapısal veri (yeni)
+}
+
+/** PDF sayfa üzerinde tek bir çevrilmiş metin bloğu */
+export interface OverlayBlock {
+  x: number;                 // 0-1, sayfa genişliği oranı (sol-üst origin)
+  y: number;                 // 0-1, sayfa yüksekliği oranı
+  w: number;                 // 0-1
+  h: number;                 // 0-1
+  fontSize: number;          // PDF pts cinsinden (scale=1)
+  original: string;
+  translated: string;
+  visual?: boolean;          // true ise: görsel/grafik içinden tespit edilmiş
+}
+
+export interface OverlayPage {
+  pageNum: number;
+  pageWidthPts: number;
+  pageHeightPts: number;
+  blocks: OverlayBlock[];
+}
+
+export interface OverlayData {
+  version: 1;
+  sourceLang: string;
+  targetLang: string;
+  pages: OverlayPage[];
 }
 
 export interface ChatMessage {

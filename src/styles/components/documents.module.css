@@ -186,6 +186,8 @@
 }
 
 /* Tüm butonların ortak temeli */
+.btnOverlay,
+.btnSummary,
 .btnView,
 .btnChat,
 .btnDelete {
@@ -205,7 +207,22 @@
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
+  white-space: nowrap;
 }
+
+/* PDF Görünümü — vurgulu */
+.btnOverlay {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-medium);
+  color: var(--color-accent);
+  font-weight: 750;
+}
+.btnOverlay:hover:not(:disabled) { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+.btnOverlay:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Özetle */
+.btnSummary { color: #7c3aed; border-color: rgba(124, 58, 237, 0.18); }
+.btnSummary:hover { background: rgba(124, 58, 237, 0.07); border-color: rgba(124, 58, 237, 0.35); }
 
 .btnView:hover  { background: var(--color-accent-light); border-color: var(--color-accent); color: var(--color-accent); }
 .btnChat:hover  { background: var(--color-info-bg); border-color: var(--color-info); color: var(--color-info); }
