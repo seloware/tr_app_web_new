@@ -18,6 +18,11 @@ import {
 } from './pdfRenderer';
 import { extractTextLines } from './pdfTextExtractor';
 import { translatePageWithVision } from './ai';
+import {
+  extractPDFPages,
+  renderPageWithService,
+  type ServicePageData,
+} from './pdfExtractorService';
 import type { OverlayPage, OverlayBlock } from '../types';
 
 // Aynı anda işlenecek maksimum sayfa sayısı (API rate limit + tarayıcı CPU dengesi)
@@ -55,6 +60,15 @@ export async function buildOverlayFromPDF(
 
   if (signal?.aborted) throw new Error('İptal edildi');
 
+  // Python servisi varsa ve kaynak bir File ise, daha doğru koordinat alınır
+  let servicePages: ServicePageData[] | null = null;
+  if (source instanceof File) {
+    servicePages = await extractPDFPages(source);
+    if (servicePages) {
+      onProgress?.({ phase: 'loading', current: 0, total: 0, message: 'PyMuPDF servisi hazır — doğru koordinatlar kullanılıyor' });
+    }
+  }
+
   const total = pdf.numPages;
   const result: OverlayPage[] = new Array(total);
   let completed = 0;
@@ -71,70 +85,96 @@ export async function buildOverlayFromPDF(
   // Page numarası kuyruğu (1-indexed)
   const queue = Array.from({ length: total }, (_, i) => i + 1);
 
-  const processPage = async (pageNum: number): Promise<void> => {
+  const processOnePage = async (pageNum: number): Promise<void> => {
     if (signal?.aborted) throw new Error('İptal edildi');
 
-    try {
-      // 1. Render (1.4x — vision için yeterli, hız için fazla değil)
-      const imageDataURL = await renderPageToDataURL(pdf, pageNum, 1.4);
-      if (signal?.aborted) throw new Error('İptal edildi');
+    // 1. Render — Python servisi varsa daha yüksek kalitede render eder
+    let imageDataURL: string;
+    if (servicePages && source instanceof File) {
+      imageDataURL = await renderPageWithService(source, pageNum, 1.5) ??
+                     await renderPageToDataURL(pdf, pageNum, 1.4);
+    } else {
+      imageDataURL = await renderPageToDataURL(pdf, pageNum, 1.4);
+    }
+    if (signal?.aborted) throw new Error('İptal edildi');
 
-      // 2. Metin koordinatlarını çıkar
+    // 2. Metin koordinatlarını çıkar — Python servisi öncelikli
+    let extractedLines: Array<{ text: string; x: number; y: number; w: number; h: number; fontSize: number }>;
+    let pageWidthPts: number;
+    let pageHeightPts: number;
+
+    const servicePage = servicePages?.find(p => p.pageNum === pageNum);
+    if (servicePage) {
+      extractedLines = servicePage.blocks;
+      pageWidthPts = servicePage.pageWidthPts;
+      pageHeightPts = servicePage.pageHeightPts;
+    } else {
       const extract = await extractTextLines(pdf, pageNum);
-      if (signal?.aborted) throw new Error('İptal edildi');
+      extractedLines = extract.lines;
+      pageWidthPts = extract.pageWidthPts;
+      pageHeightPts = extract.pageHeightPts;
+    }
+    if (signal?.aborted) throw new Error('İptal edildi');
 
-      // 3. Çeviri (vision + metin)
-      let blocks: OverlayBlock[] = [];
-      if (extract.lines.length > 0 || true) { // her sayfa için vision çağrısı yap (visual text de tespit etmesi için)
-        const { textTranslations, visualBlocks } = await translatePageWithVision(
-          imageDataURL,
-          extract.lines,
-          sourceLang,
-          targetLang,
-          signal,
-        );
+    // 3. Çeviri (vision + metin) — iki ayrı aşama, retry ile
+    const { textTranslations, visualBlocks } = await translatePageWithVision(
+      imageDataURL,
+      extractedLines,
+      sourceLang,
+      targetLang,
+      signal,
+    );
 
-        // PDF.js'ten çıkan metinler (pozisyon güvenilir)
-        blocks = extract.lines.map((line, i) => ({
-          x: line.x,
-          y: line.y,
-          w: line.w,
-          h: line.h,
-          fontSize: line.fontSize,
-          original: line.text,
-          translated: textTranslations[i] || line.text,
-        }));
+    // Metin blokları (koordinat kaynağı: Python servisi veya PDF.js)
+    const blocks: OverlayBlock[] = extractedLines.map((line, i) => ({
+      x: line.x,
+      y: line.y,
+      w: line.w,
+      h: line.h,
+      fontSize: line.fontSize,
+      original: line.text,
+      translated: textTranslations[i] || line.text,
+    }));
 
-        // Grafik içi yazılar (best-effort, Gemini'den gelen pozisyonlar)
-        for (const v of visualBlocks) {
-          // Çakışma kontrolü: zaten PDF.js'te varsa atla
-          const overlapsExisting = blocks.some(b =>
-            Math.abs(b.x - v.x) < 0.02 &&
-            Math.abs(b.y - v.y) < 0.02 &&
-            b.original.toLowerCase().includes(v.original.toLowerCase().slice(0, 10))
-          );
-          if (!overlapsExisting) {
-            blocks.push({ ...v, visual: true });
-          }
+    // Grafik içi yazılar (best-effort, Gemini vision'dan gelen pozisyonlar)
+    for (const v of visualBlocks) {
+      const overlapsExisting = blocks.some(b =>
+        Math.abs(b.x - v.x) < 0.02 &&
+        Math.abs(b.y - v.y) < 0.02 &&
+        b.original.toLowerCase().includes(v.original.toLowerCase().slice(0, 10))
+      );
+      if (!overlapsExisting) {
+        blocks.push({ ...v, visual: true });
+      }
+    }
+
+    result[pageNum - 1] = {
+      pageNum,
+      pageWidthPts,
+      pageHeightPts,
+      blocks,
+    };
+  };
+
+  // Sayfa başına en fazla MAX_ATTEMPTS deneme — geçici API hataları için
+  const MAX_ATTEMPTS = 3;
+  const processPage = async (pageNum: number): Promise<void> => {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        await processOnePage(pageNum);
+        break; // başarılı
+      } catch (err) {
+        const msg = (err as Error)?.message ?? '';
+        if (msg === 'İptal edildi') throw err;
+        if (attempt === MAX_ATTEMPTS) {
+          console.warn(`Sayfa ${pageNum}: ${MAX_ATTEMPTS} denemede başarısız (boş bırakılıyor):`, msg);
+          result[pageNum - 1] = { pageNum, pageWidthPts: 595, pageHeightPts: 842, blocks: [] };
+        } else {
+          const waitMs = 2000 * attempt;
+          console.warn(`Sayfa ${pageNum}: deneme ${attempt} başarısız, ${waitMs}ms sonra tekrar (${msg})`);
+          await new Promise(r => setTimeout(r, waitMs));
         }
       }
-
-      result[pageNum - 1] = {
-        pageNum,
-        pageWidthPts: extract.pageWidthPts,
-        pageHeightPts: extract.pageHeightPts,
-        blocks,
-      };
-    } catch (err) {
-      // Bir sayfada hata olursa boş bırak (kullanıcı yine de açabilsin)
-      if ((err as Error)?.message === 'İptal edildi') throw err;
-      console.warn(`Sayfa ${pageNum} işlenemedi:`, err);
-      result[pageNum - 1] = {
-        pageNum,
-        pageWidthPts: 595,
-        pageHeightPts: 842,
-        blocks: [],
-      };
     }
 
     completed++;

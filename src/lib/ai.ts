@@ -648,6 +648,36 @@ Kesin kurallar:
   });
 }
 
+// ─── Retry yardımcısı ────────────────────────────────────────────────────────
+
+/**
+ * Geçici API hatalarında (rate limit, timeout, ağ sorunu) üstel beklemeyle tekrar dener.
+ * Abort, güvenlik filtresi ve alıntı hataları yeniden denenmez — hemen fırlatılır.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  baseDelayMs = 1500,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = (e as Error)?.message ?? '';
+      if (
+        msg.includes('İptal') || msg.includes('filtresi') ||
+        msg.includes('kısıtlama') || e instanceof DOMException
+      ) throw e;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // ─── 7) Sayfa metin bloklarını konumlu olarak çevir ─────────────────────────
 
 /**
@@ -715,9 +745,13 @@ export interface PageVisionTranslation {
 }
 
 /**
- * Sayfanın hem metnini hem GÖRSEL İÇİ yazılarını (grafik etiketleri, eksen yazıları)
- * tek API çağrısıyla çevirir. PDF.js'ten gelen metin bloklarına ek olarak
- * Gemini görüntüden ek metin tespit ederse onları da pozisyon bilgisiyle döner.
+ * Sayfanın hem metnini hem GÖRSEL İÇİ yazılarını çevirir.
+ *
+ * İKİ AŞAMALI yaklaşım (güvenilirlik için):
+ *  Faz 1 — Metin çevirisi: translateTextBlocks() ile (görsel gerektirmez, çok güvenilir)
+ *  Faz 2 — Görsel metin tespiti: sadece görüntü + JSON çıktı (Gemini JSON'a daha iyi uyar)
+ *
+ * Faz 2 başarısız olursa çeviri durmuyor — sadece görsel bloklar boş kalır.
  */
 export async function translatePageWithVision(
   pageImageDataURL: string,
@@ -726,31 +760,65 @@ export async function translatePageWithVision(
   targetLang = 'tr',
   signal?: AbortSignal,
 ): Promise<PageVisionTranslation> {
+
+  // ── Faz 1: Metin çevirisi (görsel yok, basit numara listesi) ─────────────
+  let textTranslations: string[] = textBlocks.map(b => b.text);
+  if (textBlocks.length > 0) {
+    try {
+      textTranslations = await withRetry(
+        () => translateTextBlocks(textBlocks.map(b => b.text), sourceLang, targetLang, signal),
+        2,
+        2000,
+      );
+    } catch (e) {
+      const msg = (e as Error)?.message ?? '';
+      if (msg.includes('İptal')) throw e;
+      console.warn('Metin çevirisi başarısız — orijinal metin kullanılıyor:', msg);
+    }
+  }
+
+  if (signal?.aborted) throw new Error('İptal edildi');
+
+  // ── Faz 2: Grafik/görsel içi metin tespiti (best-effort, JSON çıktı) ─────
+  const visualBlocks: PageVisionTranslation['visualBlocks'] = [];
+  try {
+    const detected = await withRetry(
+      () => detectVisualTextInPage(pageImageDataURL, sourceLang, targetLang),
+      1, // görsel tespit için sadece 1 retry
+      2000,
+    );
+    visualBlocks.push(...detected);
+  } catch (e) {
+    const msg = (e as Error)?.message ?? '';
+    if (msg.includes('İptal')) throw e;
+    // Görsel tespit başarısız → önemli değil, devam et
+  }
+
+  return { textTranslations, visualBlocks };
+}
+
+/**
+ * Sayfa görüntüsündeki grafik/diyagram/şekil İÇİNDEKİ metin etiketlerini tespit eder.
+ * JSON çıktı formatı kullanır (Gemini JSON'a özel metin formatından çok daha iyi uyar).
+ */
+async function detectVisualTextInPage(
+  pageImageDataURL: string,
+  sourceLang: string,
+  targetLang: string,
+): Promise<PageVisionTranslation['visualBlocks']> {
   const [header, b64] = pageImageDataURL.split(',');
   const mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
   const targetName = targetLang === 'tr' ? 'Türkçe' : targetLang;
 
-  const numbered = textBlocks.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
-
   const prompt =
-    `Bu PDF sayfasını analiz et. ${sourceLang} dilinden ${targetName} diline çevir.\n\n` +
-    `GÖREV 1: Aşağıdaki ${textBlocks.length} numaralı metin bloğunu çevir.\n` +
-    `GÖREV 2: Sayfa görüntüsünde GRAFİK/ŞEKİL/DİYAGRAM İÇİNDEKİ metinleri (eksen etiketleri, başlıklar, legend, vb.) tespit et ve çevir.\n\n` +
-    `ÇIKARILAN METİNLER:\n${numbered || '(metin yok)'}\n\n` +
-    `YANIT FORMATI (KESİNLİKLE bu format — başka hiçbir şey yazma):\n` +
-    `=== TEXT ===\n` +
-    `1. <çeviri>\n` +
-    `2. <çeviri>\n` +
-    `...\n\n` +
-    `=== VISUAL ===\n` +
-    `x:<0-1> y:<0-1> w:<0-1> h:<0-1> fs:<sayı> | <orijinal> | <çeviri>\n` +
-    `...\n\n` +
-    `KURALLAR:\n` +
-    `- Formüller, semboller, sayılar değiştirilmez (LaTeX/Unicode aynı kalır)\n` +
-    `- Görsel metin yoksa VISUAL bölümünü boş bırak\n` +
-    `- Pozisyonlar 0-1 arası oran (sol-üst köşe = 0,0; sağ-alt = 1,1)\n` +
-    `- fs = font boyutu pts cinsinden (yaklaşık)\n` +
-    `- Kısaltmalar, özel isimler ve marka adları olduğu gibi bırakılır`;
+    `Look at this PDF page. Find text labels that appear INSIDE charts, graphs, diagrams, or figures.\n` +
+    `Include: axis labels, legend text, bar/pie labels, diagram annotations, chart titles inside figures.\n` +
+    `Exclude: regular paragraph text, section headings, captions below figures, page numbers.\n\n` +
+    `Translate each found label from ${sourceLang} to ${targetName}.\n\n` +
+    `Return ONLY valid JSON — no markdown, no explanation, nothing else:\n` +
+    `{"items":[{"x":0.1,"y":0.3,"w":0.2,"h":0.03,"fs":9,"original":"X Axis","translated":"X Ekseni"}]}\n\n` +
+    `Coordinate system: x,y = top-left corner as 0-1 ratio of page size, w = width ratio, h = height ratio.\n` +
+    `If no visual text found, return: {"items":[]}`;
 
   const result = await callGemini({
     contents: [{
@@ -761,48 +829,43 @@ export async function translatePageWithVision(
       ],
     }],
     temperature: 0.05,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 2048,
+    _useProModel: true,
   });
 
-  if (signal?.aborted) throw new Error('İptal edildi');
+  // JSON'u yanıt içinden çıkar (markdown code block olsa bile)
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return [];
 
-  // ── Parse TEXT bölümü ─────────────────────────────────────────────────────
-  const textMatch = result.match(/=== TEXT ===\s*([\s\S]*?)(?:=== VISUAL ===|$)/);
-  const textTranslations = new Array(textBlocks.length).fill('');
-  if (textMatch) {
-    for (const line of textMatch[1].split('\n')) {
-      const m = line.match(/^\s*(\d+)\.\s*(.+)/);
-      if (m) {
-        const idx = parseInt(m[1]) - 1;
-        if (idx >= 0 && idx < textBlocks.length) {
-          textTranslations[idx] = m[2].trim();
-        }
-      }
-    }
-  }
-  const finalText = textTranslations.map((t, i) => t || textBlocks[i].text);
-
-  // ── Parse VISUAL bölümü ───────────────────────────────────────────────────
-  const visualBlocks: PageVisionTranslation['visualBlocks'] = [];
-  const visualMatch = result.match(/=== VISUAL ===\s*([\s\S]*?)$/);
-  if (visualMatch) {
-    for (const line of visualMatch[1].split('\n')) {
-      const m = line.match(/x:\s*([\d.]+)\s+y:\s*([\d.]+)\s+w:\s*([\d.]+)\s+h:\s*([\d.]+)\s+fs:\s*([\d.]+)\s*\|\s*([^|]+?)\s*\|\s*(.+)/);
-      if (m) {
-        const x = parseFloat(m[1]), y = parseFloat(m[2]), w = parseFloat(m[3]), h = parseFloat(m[4]);
-        if (x >= 0 && x <= 1 && y >= 0 && y <= 1 && w > 0 && w <= 1) {
-          visualBlocks.push({
-            x, y, w: Math.min(w, 1 - x), h: Math.max(h, 0.012),
-            fontSize: parseFloat(m[5]) || 10,
-            original: m[6].trim(),
-            translated: m[7].trim(),
-          });
-        }
-      }
-    }
+  let parsed: { items?: unknown[] };
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    return [];
   }
 
-  return { textTranslations: finalText, visualBlocks };
+  const items: PageVisionTranslation['visualBlocks'] = [];
+  for (const item of (parsed.items ?? [])) {
+    if (!item || typeof item !== 'object') continue;
+    const { x, y, w, h, fs, original, translated } = item as Record<string, unknown>;
+    if (
+      typeof x === 'number' && x >= 0 && x <= 1 &&
+      typeof y === 'number' && y >= 0 && y <= 1 &&
+      typeof w === 'number' && w > 0 && w <= 1 &&
+      original && translated
+    ) {
+      items.push({
+        x,
+        y,
+        w: Math.min(w, 1 - x),
+        h: Math.max(typeof h === 'number' ? h : 0.02, 0.01),
+        fontSize: typeof fs === 'number' ? fs : 10,
+        original: String(original),
+        translated: String(translated),
+      });
+    }
+  }
+  return items;
 }
 
 /**
