@@ -134,3 +134,27 @@ export async function checkServiceHealth(): Promise<boolean> {
     return false;
   }
 }
+
+export interface ServiceCapabilities {
+  available: boolean;
+  version?: string;
+  unicodeFont?: boolean;
+  redactionWrite?: boolean;
+}
+
+export async function getServiceCapabilities(): Promise<ServiceCapabilities> {
+  if (!SERVICE_URL) return { available: false };
+  try {
+    const res = await fetch(`${SERVICE_URL}/health`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return { available: false };
+    const data = await res.json();
+    return {
+      available: true,
+      version: data.version,
+      unicodeFont: data.unicodeFont,
+      redactionWrite: data.capabilities?.redactionWrite,
+    };
+  } catch {
+    return { available: false };
+  }
+}

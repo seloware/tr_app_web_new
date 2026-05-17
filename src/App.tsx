@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TranslationProvider } from './context/TranslationContext';
 import Navbar from './components/ui/Navbar';
+import TranslationStatusBar from './components/TranslationStatusBar';
 
 const LandingPage        = lazy(() => import('./pages/LandingPage'));
 const AuthPage           = lazy(() => import('./pages/AuthPage'));
@@ -83,6 +85,7 @@ function AppLayout() {
           </AnimatePresence>
         </Suspense>
       </main>
+      <TranslationStatusBar />
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -106,7 +109,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppLayout />
+        <TranslationProvider>
+          <AppLayout />
+        </TranslationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

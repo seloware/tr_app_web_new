@@ -235,7 +235,7 @@ export default function DocumentsPage() {
 
                 {/* İşlem butonları */}
                 <div className={styles.cardActions}>
-                  {/* PDF üstüne yaz — ana özellik */}
+                  {/* PDF üstüne yaz — ana özellik, tam genişlik */}
                   {doc.status === 'completed' && doc.original_storage_path && (
                     <motion.button
                       className={styles.btnOverlay}
@@ -254,51 +254,54 @@ export default function DocumentsPage() {
                     </motion.button>
                   )}
 
-                  {/* Özet çıkar */}
-                  {doc.translation?.translated_text && (
-                    <motion.button
-                      className={styles.btnSummary}
-                      onClick={() => openSummary(doc)}
-                      whileHover={reduced ? undefined : { y: -1 }}
-                      whileTap={reduced ? undefined : { scale: 0.95 }}
-                      transition={SPRING_TIGHT}
-                      title="Yapay zeka ile belge özeti oluştur"
-                    >
-                      <BookOpen size={13} /> Özetle
-                    </motion.button>
-                  )}
+                  {/* İkincil butonlar — tek satırda */}
+                  <div className={styles.cardActionsRow}>
+                    {doc.translation?.translated_text && (
+                      <motion.button
+                        className={styles.btnSummary}
+                        onClick={() => openSummary(doc)}
+                        whileHover={reduced ? undefined : { y: -1 }}
+                        whileTap={reduced ? undefined : { scale: 0.95 }}
+                        transition={SPRING_TIGHT}
+                        title="Yapay zeka ile belge özeti oluştur"
+                      >
+                        <BookOpen size={13} /> Özetle
+                      </motion.button>
+                    )}
 
-                  {/* Çeviri metni görüntüle */}
-                  {doc.translation?.translated_text && (
+                    {doc.translation?.translated_text && (
+                      <motion.button
+                        className={styles.btnView}
+                        onClick={() => setSelectedDoc(doc)}
+                        whileHover={reduced ? undefined : { y: -1 }}
+                        whileTap={reduced ? undefined : { scale: 0.95 }}
+                        transition={SPRING_TIGHT}
+                      >
+                        <Eye size={14} /> Metin
+                      </motion.button>
+                    )}
+
+                    <motion.div
+                      whileHover={reduced ? undefined : { y: -1 }}
+                      whileTap={reduced ? undefined : { scale: 0.95 }}
+                      transition={SPRING_TIGHT}
+                      style={{ display: 'inline-flex', flex: 1 }}
+                    >
+                      <Link to="/chat" state={{ documentId: doc.id }} className={styles.btnChat}>
+                        <MessageSquare size={14} /> AI Sor
+                      </Link>
+                    </motion.div>
+
                     <motion.button
-                      className={styles.btnView}
-                      onClick={() => setSelectedDoc(doc)}
+                      className={styles.btnDelete}
+                      onClick={() => handleDelete(doc.id)}
                       whileHover={reduced ? undefined : { y: -1 }}
                       whileTap={reduced ? undefined : { scale: 0.95 }}
                       transition={SPRING_TIGHT}
                     >
-                      <Eye size={14} /> Metin
+                      <Trash2 size={14} /> Sil
                     </motion.button>
-                  )}
-                  <motion.div
-                    whileHover={reduced ? undefined : { y: -1 }}
-                    whileTap={reduced ? undefined : { scale: 0.95 }}
-                    transition={SPRING_TIGHT}
-                    style={{ display: 'inline-flex' }}
-                  >
-                    <Link to="/chat" state={{ documentId: doc.id }} className={styles.btnChat}>
-                      <MessageSquare size={14} /> AI Sor
-                    </Link>
-                  </motion.div>
-                  <motion.button
-                    className={styles.btnDelete}
-                    onClick={() => handleDelete(doc.id)}
-                    whileHover={reduced ? undefined : { y: -1 }}
-                    whileTap={reduced ? undefined : { scale: 0.95 }}
-                    transition={SPRING_TIGHT}
-                  >
-                    <Trash2 size={14} /> Sil
-                  </motion.button>
+                  </div>
                 </div>
               </motion.div>
             ))}
